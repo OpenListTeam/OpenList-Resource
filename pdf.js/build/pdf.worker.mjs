@@ -21,8 +21,8 @@
  */
 
 /**
- * pdfjsVersion = 5.3.31
- * pdfjsBuild = 47ad820d9
+ * pdfjsVersion = 5.4.54
+ * pdfjsBuild = 295fb3ec4
  */
 /******/ var __webpack_modules__ = ({
 
@@ -238,9 +238,15 @@ var getIteratorFlattenable = __webpack_require__(8646);
 var createIteratorProxy = __webpack_require__(9462);
 var iteratorClose = __webpack_require__(9539);
 var IS_PURE = __webpack_require__(6395);
+var iteratorHelperThrowsOnInvalidIterator = __webpack_require__(684);
 var iteratorHelperWithoutClosingOnEarlyError = __webpack_require__(4549);
 
-var flatMapWithoutClosingOnEarlyError = !IS_PURE && iteratorHelperWithoutClosingOnEarlyError('flatMap', TypeError);
+var FLAT_MAP_WITHOUT_THROWING_ON_INVALID_ITERATOR = !IS_PURE
+  && !iteratorHelperThrowsOnInvalidIterator('flatMap', function () { /* empty */ });
+var flatMapWithoutClosingOnEarlyError = !IS_PURE && !FLAT_MAP_WITHOUT_THROWING_ON_INVALID_ITERATOR
+  && iteratorHelperWithoutClosingOnEarlyError('flatMap', TypeError);
+
+var FORCED = IS_PURE || FLAT_MAP_WITHOUT_THROWING_ON_INVALID_ITERATOR || flatMapWithoutClosingOnEarlyError;
 
 var IteratorProxy = createIteratorProxy(function () {
   var iterator = this.iterator;
@@ -266,7 +272,7 @@ var IteratorProxy = createIteratorProxy(function () {
 
 // `Iterator.prototype.flatMap` method
 // https://tc39.es/ecma262/#sec-iterator.prototype.flatmap
-$({ target: 'Iterator', proto: true, real: true, forced: IS_PURE || flatMapWithoutClosingOnEarlyError }, {
+$({ target: 'Iterator', proto: true, real: true, forced: FORCED }, {
   flatMap: function flatMap(mapper) {
     anObject(this);
     try {
@@ -330,6 +336,25 @@ var $TypeError = TypeError;
 module.exports = function (it, Prototype) {
   if (isPrototypeOf(Prototype, it)) return it;
   throw new $TypeError('Incorrect invocation');
+};
+
+
+/***/ }),
+
+/***/ 684:
+/***/ ((module) => {
+
+
+// Should throw an error on invalid iterator
+// https://issues.chromium.org/issues/336839115
+module.exports = function (methodName, argument) {
+  // eslint-disable-next-line es/no-iterator -- required for testing
+  var method = typeof Iterator == 'function' && Iterator.prototype[methodName];
+  if (method) try {
+    method.call({ next: null }, argument).next();
+  } catch (error) {
+    return true;
+  }
 };
 
 
@@ -437,6 +462,20 @@ module.exports = function (exec) {
   } catch (error) {
     return { error: true, value: error };
   }
+};
+
+
+/***/ }),
+
+/***/ 1108:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var classof = __webpack_require__(6955);
+
+module.exports = function (it) {
+  var klass = classof(it);
+  return klass === 'BigInt64Array' || klass === 'BigUint64Array';
 };
 
 
@@ -576,6 +615,29 @@ module.exports = function (argument) {
 
 /***/ }),
 
+/***/ 1385:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var iteratorClose = __webpack_require__(9539);
+
+module.exports = function (iters, kind, value) {
+  for (var i = iters.length - 1; i >= 0; i--) {
+    if (iters[i] === undefined) continue;
+    try {
+      value = iteratorClose(iters[i].iterator, kind, value);
+    } catch (error) {
+      kind = 'throw';
+      value = error;
+    }
+  }
+  if (kind === 'throw') throw value;
+  return value;
+};
+
+
+/***/ }),
+
 /***/ 1548:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
@@ -610,14 +672,18 @@ var anUint8Array = __webpack_require__(4154);
 
 var Uint8Array = globalThis.Uint8Array;
 
-var INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS = !Uint8Array || !Uint8Array.prototype.setFromBase64 || !(function () {
+var INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS = !Uint8Array || !Uint8Array.prototype.setFromBase64 || !function () {
   var target = new Uint8Array([255, 255, 255, 255, 255]);
+  try {
+    target.setFromBase64('', null);
+    return;
+  } catch (error) { /* empty */ }
   try {
     target.setFromBase64('MjYyZg===');
   } catch (error) {
     return target[0] === 50 && target[1] === 54 && target[2] === 50 && target[3] === 255 && target[4] === 255;
   }
-})();
+}();
 
 // `Uint8Array.prototype.setFromBase64` method
 // https://github.com/tc39/proposal-arraybuffer-base64
@@ -691,11 +757,14 @@ $({ target: 'Promise', stat: true, forced: FORCED }, {
 
 var $ = __webpack_require__(6518);
 var union = __webpack_require__(4204);
+var setMethodGetKeysBeforeCloning = __webpack_require__(9835);
 var setMethodAcceptSetLike = __webpack_require__(4916);
+
+var FORCED = !setMethodAcceptSetLike('union') || !setMethodGetKeysBeforeCloning('union');
 
 // `Set.prototype.union` method
 // https://tc39.es/ecma262/#sec-set.prototype.union
-$({ target: 'Set', proto: true, real: true, forced: !setMethodAcceptSetLike('union') }, {
+$({ target: 'Set', proto: true, real: true, forced: FORCED }, {
   union: union
 });
 
@@ -714,10 +783,15 @@ var getIteratorDirect = __webpack_require__(1767);
 var createIteratorProxy = __webpack_require__(9462);
 var callWithSafeIterationClosing = __webpack_require__(6319);
 var iteratorClose = __webpack_require__(9539);
+var iteratorHelperThrowsOnInvalidIterator = __webpack_require__(684);
 var iteratorHelperWithoutClosingOnEarlyError = __webpack_require__(4549);
 var IS_PURE = __webpack_require__(6395);
 
-var mapWithoutClosingOnEarlyError = !IS_PURE && iteratorHelperWithoutClosingOnEarlyError('map', TypeError);
+var MAP_WITHOUT_THROWING_ON_INVALID_ITERATOR = !IS_PURE && !iteratorHelperThrowsOnInvalidIterator('map', function () { /* empty */ });
+var mapWithoutClosingOnEarlyError = !IS_PURE && !MAP_WITHOUT_THROWING_ON_INVALID_ITERATOR
+  && iteratorHelperWithoutClosingOnEarlyError('map', TypeError);
+
+var FORCED = IS_PURE || MAP_WITHOUT_THROWING_ON_INVALID_ITERATOR || mapWithoutClosingOnEarlyError;
 
 var IteratorProxy = createIteratorProxy(function () {
   var iterator = this.iterator;
@@ -728,7 +802,7 @@ var IteratorProxy = createIteratorProxy(function () {
 
 // `Iterator.prototype.map` method
 // https://tc39.es/ecma262/#sec-iterator.prototype.map
-$({ target: 'Iterator', proto: true, real: true, forced: IS_PURE || mapWithoutClosingOnEarlyError }, {
+$({ target: 'Iterator', proto: true, real: true, forced: FORCED }, {
   map: function map(mapper) {
     anObject(this);
     try {
@@ -753,7 +827,7 @@ $({ target: 'Iterator', proto: true, real: true, forced: IS_PURE || mapWithoutCl
 
 
 // `GetIteratorDirect(obj)` abstract operation
-// https://tc39.es/proposal-iterator-helpers/#sec-getiteratordirect
+// https://tc39.es/ecma262/#sec-getiteratordirect
 module.exports = function (obj) {
   return {
     iterator: obj,
@@ -1040,9 +1114,14 @@ var createIteratorProxy = __webpack_require__(9462);
 var callWithSafeIterationClosing = __webpack_require__(6319);
 var IS_PURE = __webpack_require__(6395);
 var iteratorClose = __webpack_require__(9539);
+var iteratorHelperThrowsOnInvalidIterator = __webpack_require__(684);
 var iteratorHelperWithoutClosingOnEarlyError = __webpack_require__(4549);
 
-var filterWithoutClosingOnEarlyError = !IS_PURE && iteratorHelperWithoutClosingOnEarlyError('filter', TypeError);
+var FILTER_WITHOUT_THROWING_ON_INVALID_ITERATOR = !IS_PURE && !iteratorHelperThrowsOnInvalidIterator('filter', function () { /* empty */ });
+var filterWithoutClosingOnEarlyError = !IS_PURE && !FILTER_WITHOUT_THROWING_ON_INVALID_ITERATOR
+  && iteratorHelperWithoutClosingOnEarlyError('filter', TypeError);
+
+var FORCED = IS_PURE || FILTER_WITHOUT_THROWING_ON_INVALID_ITERATOR || filterWithoutClosingOnEarlyError;
 
 var IteratorProxy = createIteratorProxy(function () {
   var iterator = this.iterator;
@@ -1060,7 +1139,7 @@ var IteratorProxy = createIteratorProxy(function () {
 
 // `Iterator.prototype.filter` method
 // https://tc39.es/ecma262/#sec-iterator.prototype.filter
-$({ target: 'Iterator', proto: true, real: true, forced: IS_PURE || filterWithoutClosingOnEarlyError }, {
+$({ target: 'Iterator', proto: true, real: true, forced: FORCED }, {
   filter: function filter(predicate) {
     anObject(this);
     try {
@@ -1140,7 +1219,7 @@ module.exports = function (iterable, unboundFunction, options) {
   var iterator, iterFn, index, length, result, next, step;
 
   var stop = function (condition) {
-    if (iterator) iteratorClose(iterator, 'normal', condition);
+    if (iterator) iteratorClose(iterator, 'normal');
     return new Result(true, condition);
   };
 
@@ -1422,7 +1501,7 @@ var uncurryThis = __webpack_require__(9504);
 
 var id = 0;
 var postfix = Math.random();
-var toString = uncurryThis(1.0.toString);
+var toString = uncurryThis(1.1.toString);
 
 module.exports = function (key) {
   return 'Symbol(' + (key === undefined ? '' : key) + ')_' + toString(++id + postfix, 36);
@@ -1447,7 +1526,7 @@ var has = SetHelpers.has;
 var remove = SetHelpers.remove;
 
 // `Set.prototype.difference` method
-// https://github.com/tc39/proposal-set-methods
+// https://tc39.es/ecma262/#sec-set.prototype.difference
 module.exports = function difference(other) {
   var O = aSet(this);
   var otherRec = getSetRecord(other);
@@ -1456,7 +1535,7 @@ module.exports = function difference(other) {
     if (otherRec.includes(e)) remove(result, e);
   });
   else iterateSimple(otherRec.getIterator(), function (e) {
-    if (has(O, e)) remove(result, e);
+    if (has(result, e)) remove(result, e);
   });
   return result;
 };
@@ -1597,7 +1676,7 @@ var has = SetHelpers.has;
 var remove = SetHelpers.remove;
 
 // `Set.prototype.symmetricDifference` method
-// https://github.com/tc39/proposal-set-methods
+// https://tc39.es/ecma262/#sec-set.prototype.symmetricdifference
 module.exports = function symmetricDifference(other) {
   var O = aSet(this);
   var keysIter = getSetRecord(other).getIterator();
@@ -1716,7 +1795,7 @@ var iterate = __webpack_require__(8469);
 var getSetRecord = __webpack_require__(3789);
 
 // `Set.prototype.isSubsetOf` method
-// https://tc39.github.io/proposal-set-methods/#Set.prototype.isSubsetOf
+// https://tc39.es/ecma262/#sec-set.prototype.issubsetof
 module.exports = function isSubsetOf(other) {
   var O = aSet(this);
   var otherRec = getSetRecord(other);
@@ -1889,7 +1968,7 @@ var getSetRecord = __webpack_require__(3789);
 var iterateSimple = __webpack_require__(507);
 
 // `Set.prototype.union` method
-// https://github.com/tc39/proposal-set-methods
+// https://tc39.es/ecma262/#sec-set.prototype.union
 module.exports = function union(other) {
   var O = aSet(this);
   var keysIter = getSetRecord(other).getIterator();
@@ -1945,6 +2024,164 @@ module.exports = (function () {
   if (globalThis.window && globalThis.document) return 'BROWSER';
   return 'REST';
 })();
+
+
+/***/ }),
+
+/***/ 4235:
+/***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
+
+
+// based on Shewchuk's algorithm for exactly floating point addition
+// adapted from https://github.com/tc39/proposal-math-sum/blob/3513d58323a1ae25560e8700aa5294500c6c9287/polyfill/polyfill.mjs
+var $ = __webpack_require__(6518);
+var uncurryThis = __webpack_require__(9504);
+var iterate = __webpack_require__(2652);
+
+var $RangeError = RangeError;
+var $TypeError = TypeError;
+var $Infinity = Infinity;
+var $NaN = NaN;
+var abs = Math.abs;
+var pow = Math.pow;
+var push = uncurryThis([].push);
+
+var POW_2_1023 = pow(2, 1023);
+var MAX_SAFE_INTEGER = pow(2, 53) - 1; // 2 ** 53 - 1 === 9007199254740992
+var MAX_DOUBLE = Number.MAX_VALUE; // 2 ** 1024 - 2 ** (1023 - 52) === 1.79769313486231570815e+308
+var MAX_ULP = pow(2, 971); // 2 ** (1023 - 52) === 1.99584030953471981166e+292
+
+var NOT_A_NUMBER = {};
+var MINUS_INFINITY = {};
+var PLUS_INFINITY = {};
+var MINUS_ZERO = {};
+var FINITE = {};
+
+// prerequisite: abs(x) >= abs(y)
+var twosum = function (x, y) {
+  var hi = x + y;
+  var lo = y - (hi - x);
+  return { hi: hi, lo: lo };
+};
+
+// `Math.sumPrecise` method
+// https://github.com/tc39/proposal-math-sum
+$({ target: 'Math', stat: true }, {
+  // eslint-disable-next-line max-statements -- ok
+  sumPrecise: function sumPrecise(items) {
+    var numbers = [];
+    var count = 0;
+    var state = MINUS_ZERO;
+
+    iterate(items, function (n) {
+      if (++count >= MAX_SAFE_INTEGER) throw new $RangeError('Maximum allowed index exceeded');
+      if (typeof n != 'number') throw new $TypeError('Value is not a number');
+      if (state !== NOT_A_NUMBER) {
+        // eslint-disable-next-line no-self-compare -- NaN check
+        if (n !== n) state = NOT_A_NUMBER;
+        else if (n === $Infinity) state = state === MINUS_INFINITY ? NOT_A_NUMBER : PLUS_INFINITY;
+        else if (n === -$Infinity) state = state === PLUS_INFINITY ? NOT_A_NUMBER : MINUS_INFINITY;
+        else if ((n !== 0 || (1 / n) === $Infinity) && (state === MINUS_ZERO || state === FINITE)) {
+          state = FINITE;
+          push(numbers, n);
+        }
+      }
+    });
+
+    switch (state) {
+      case NOT_A_NUMBER: return $NaN;
+      case MINUS_INFINITY: return -$Infinity;
+      case PLUS_INFINITY: return $Infinity;
+      case MINUS_ZERO: return -0;
+    }
+
+    var partials = [];
+    var overflow = 0; // conceptually 2 ** 1024 times this value; the final partial is biased by this amount
+    var x, y, sum, hi, lo, tmp;
+
+    for (var i = 0; i < numbers.length; i++) {
+      x = numbers[i];
+      var actuallyUsedPartials = 0;
+      for (var j = 0; j < partials.length; j++) {
+        y = partials[j];
+        if (abs(x) < abs(y)) {
+          tmp = x;
+          x = y;
+          y = tmp;
+        }
+        sum = twosum(x, y);
+        hi = sum.hi;
+        lo = sum.lo;
+        if (abs(hi) === $Infinity) {
+          var sign = hi === $Infinity ? 1 : -1;
+          overflow += sign;
+
+          x = (x - (sign * POW_2_1023)) - (sign * POW_2_1023);
+          if (abs(x) < abs(y)) {
+            tmp = x;
+            x = y;
+            y = tmp;
+          }
+          sum = twosum(x, y);
+          hi = sum.hi;
+          lo = sum.lo;
+        }
+        if (lo !== 0) partials[actuallyUsedPartials++] = lo;
+        x = hi;
+      }
+      partials.length = actuallyUsedPartials;
+      if (x !== 0) push(partials, x);
+    }
+
+    // compute the exact sum of partials, stopping once we lose precision
+    var n = partials.length - 1;
+    hi = 0;
+    lo = 0;
+
+    if (overflow !== 0) {
+      var next = n >= 0 ? partials[n] : 0;
+      n--;
+      if (abs(overflow) > 1 || (overflow > 0 && next > 0) || (overflow < 0 && next < 0)) {
+        return overflow > 0 ? $Infinity : -$Infinity;
+      }
+      // here we actually have to do the arithmetic
+      // drop a factor of 2 so we can do it without overflow
+      // assert(abs(overflow) === 1)
+      sum = twosum(overflow * POW_2_1023, next / 2);
+      hi = sum.hi;
+      lo = sum.lo;
+      lo *= 2;
+      if (abs(2 * hi) === $Infinity) {
+        // rounding to the maximum value
+        if (hi > 0) {
+          return (hi === POW_2_1023 && lo === -(MAX_ULP / 2) && n >= 0 && partials[n] < 0) ? MAX_DOUBLE : $Infinity;
+        } return (hi === -POW_2_1023 && lo === (MAX_ULP / 2) && n >= 0 && partials[n] > 0) ? -MAX_DOUBLE : -$Infinity;
+      }
+
+      if (lo !== 0) {
+        partials[++n] = lo;
+        lo = 0;
+      }
+
+      hi *= 2;
+    }
+
+    while (n >= 0) {
+      sum = twosum(hi, partials[n--]);
+      hi = sum.hi;
+      lo = sum.lo;
+      if (lo !== 0) break;
+    }
+
+    if (n >= 0 && ((lo < 0 && partials[n] < 0) || (lo > 0 && partials[n] > 0))) {
+      y = lo * 2;
+      x = hi + y;
+      if (y === x - hi) hi = x;
+    }
+
+    return hi;
+  }
+});
 
 
 /***/ }),
@@ -2022,7 +2259,7 @@ var iterateSimple = __webpack_require__(507);
 var iteratorClose = __webpack_require__(9539);
 
 // `Set.prototype.isDisjointFrom` method
-// https://tc39.github.io/proposal-set-methods/#Set.prototype.isDisjointFrom
+// https://tc39.es/ecma262/#sec-set.prototype.isdisjointfrom
 module.exports = function isDisjointFrom(other) {
   var O = aSet(this);
   var otherRec = getSetRecord(other);
@@ -2270,6 +2507,206 @@ $({ target: 'Promise', stat: true }, {
     };
   }
 });
+
+
+/***/ }),
+
+/***/ 4644:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var NATIVE_ARRAY_BUFFER = __webpack_require__(7811);
+var DESCRIPTORS = __webpack_require__(3724);
+var globalThis = __webpack_require__(4576);
+var isCallable = __webpack_require__(4901);
+var isObject = __webpack_require__(34);
+var hasOwn = __webpack_require__(9297);
+var classof = __webpack_require__(6955);
+var tryToString = __webpack_require__(6823);
+var createNonEnumerableProperty = __webpack_require__(6699);
+var defineBuiltIn = __webpack_require__(6840);
+var defineBuiltInAccessor = __webpack_require__(2106);
+var isPrototypeOf = __webpack_require__(1625);
+var getPrototypeOf = __webpack_require__(2787);
+var setPrototypeOf = __webpack_require__(2967);
+var wellKnownSymbol = __webpack_require__(8227);
+var uid = __webpack_require__(3392);
+var InternalStateModule = __webpack_require__(1181);
+
+var enforceInternalState = InternalStateModule.enforce;
+var getInternalState = InternalStateModule.get;
+var Int8Array = globalThis.Int8Array;
+var Int8ArrayPrototype = Int8Array && Int8Array.prototype;
+var Uint8ClampedArray = globalThis.Uint8ClampedArray;
+var Uint8ClampedArrayPrototype = Uint8ClampedArray && Uint8ClampedArray.prototype;
+var TypedArray = Int8Array && getPrototypeOf(Int8Array);
+var TypedArrayPrototype = Int8ArrayPrototype && getPrototypeOf(Int8ArrayPrototype);
+var ObjectPrototype = Object.prototype;
+var TypeError = globalThis.TypeError;
+
+var TO_STRING_TAG = wellKnownSymbol('toStringTag');
+var TYPED_ARRAY_TAG = uid('TYPED_ARRAY_TAG');
+var TYPED_ARRAY_CONSTRUCTOR = 'TypedArrayConstructor';
+// Fixing native typed arrays in Opera Presto crashes the browser, see #595
+var NATIVE_ARRAY_BUFFER_VIEWS = NATIVE_ARRAY_BUFFER && !!setPrototypeOf && classof(globalThis.opera) !== 'Opera';
+var TYPED_ARRAY_TAG_REQUIRED = false;
+var NAME, Constructor, Prototype;
+
+var TypedArrayConstructorsList = {
+  Int8Array: 1,
+  Uint8Array: 1,
+  Uint8ClampedArray: 1,
+  Int16Array: 2,
+  Uint16Array: 2,
+  Int32Array: 4,
+  Uint32Array: 4,
+  Float32Array: 4,
+  Float64Array: 8
+};
+
+var BigIntArrayConstructorsList = {
+  BigInt64Array: 8,
+  BigUint64Array: 8
+};
+
+var isView = function isView(it) {
+  if (!isObject(it)) return false;
+  var klass = classof(it);
+  return klass === 'DataView'
+    || hasOwn(TypedArrayConstructorsList, klass)
+    || hasOwn(BigIntArrayConstructorsList, klass);
+};
+
+var getTypedArrayConstructor = function (it) {
+  var proto = getPrototypeOf(it);
+  if (!isObject(proto)) return;
+  var state = getInternalState(proto);
+  return (state && hasOwn(state, TYPED_ARRAY_CONSTRUCTOR)) ? state[TYPED_ARRAY_CONSTRUCTOR] : getTypedArrayConstructor(proto);
+};
+
+var isTypedArray = function (it) {
+  if (!isObject(it)) return false;
+  var klass = classof(it);
+  return hasOwn(TypedArrayConstructorsList, klass)
+    || hasOwn(BigIntArrayConstructorsList, klass);
+};
+
+var aTypedArray = function (it) {
+  if (isTypedArray(it)) return it;
+  throw new TypeError('Target is not a typed array');
+};
+
+var aTypedArrayConstructor = function (C) {
+  if (isCallable(C) && (!setPrototypeOf || isPrototypeOf(TypedArray, C))) return C;
+  throw new TypeError(tryToString(C) + ' is not a typed array constructor');
+};
+
+var exportTypedArrayMethod = function (KEY, property, forced, options) {
+  if (!DESCRIPTORS) return;
+  if (forced) for (var ARRAY in TypedArrayConstructorsList) {
+    var TypedArrayConstructor = globalThis[ARRAY];
+    if (TypedArrayConstructor && hasOwn(TypedArrayConstructor.prototype, KEY)) try {
+      delete TypedArrayConstructor.prototype[KEY];
+    } catch (error) {
+      // old WebKit bug - some methods are non-configurable
+      try {
+        TypedArrayConstructor.prototype[KEY] = property;
+      } catch (error2) { /* empty */ }
+    }
+  }
+  if (!TypedArrayPrototype[KEY] || forced) {
+    defineBuiltIn(TypedArrayPrototype, KEY, forced ? property
+      : NATIVE_ARRAY_BUFFER_VIEWS && Int8ArrayPrototype[KEY] || property, options);
+  }
+};
+
+var exportTypedArrayStaticMethod = function (KEY, property, forced) {
+  var ARRAY, TypedArrayConstructor;
+  if (!DESCRIPTORS) return;
+  if (setPrototypeOf) {
+    if (forced) for (ARRAY in TypedArrayConstructorsList) {
+      TypedArrayConstructor = globalThis[ARRAY];
+      if (TypedArrayConstructor && hasOwn(TypedArrayConstructor, KEY)) try {
+        delete TypedArrayConstructor[KEY];
+      } catch (error) { /* empty */ }
+    }
+    if (!TypedArray[KEY] || forced) {
+      // V8 ~ Chrome 49-50 `%TypedArray%` methods are non-writable non-configurable
+      try {
+        return defineBuiltIn(TypedArray, KEY, forced ? property : NATIVE_ARRAY_BUFFER_VIEWS && TypedArray[KEY] || property);
+      } catch (error) { /* empty */ }
+    } else return;
+  }
+  for (ARRAY in TypedArrayConstructorsList) {
+    TypedArrayConstructor = globalThis[ARRAY];
+    if (TypedArrayConstructor && (!TypedArrayConstructor[KEY] || forced)) {
+      defineBuiltIn(TypedArrayConstructor, KEY, property);
+    }
+  }
+};
+
+for (NAME in TypedArrayConstructorsList) {
+  Constructor = globalThis[NAME];
+  Prototype = Constructor && Constructor.prototype;
+  if (Prototype) enforceInternalState(Prototype)[TYPED_ARRAY_CONSTRUCTOR] = Constructor;
+  else NATIVE_ARRAY_BUFFER_VIEWS = false;
+}
+
+for (NAME in BigIntArrayConstructorsList) {
+  Constructor = globalThis[NAME];
+  Prototype = Constructor && Constructor.prototype;
+  if (Prototype) enforceInternalState(Prototype)[TYPED_ARRAY_CONSTRUCTOR] = Constructor;
+}
+
+// WebKit bug - typed arrays constructors prototype is Object.prototype
+if (!NATIVE_ARRAY_BUFFER_VIEWS || !isCallable(TypedArray) || TypedArray === Function.prototype) {
+  // eslint-disable-next-line no-shadow -- safe
+  TypedArray = function TypedArray() {
+    throw new TypeError('Incorrect invocation');
+  };
+  if (NATIVE_ARRAY_BUFFER_VIEWS) for (NAME in TypedArrayConstructorsList) {
+    if (globalThis[NAME]) setPrototypeOf(globalThis[NAME], TypedArray);
+  }
+}
+
+if (!NATIVE_ARRAY_BUFFER_VIEWS || !TypedArrayPrototype || TypedArrayPrototype === ObjectPrototype) {
+  TypedArrayPrototype = TypedArray.prototype;
+  if (NATIVE_ARRAY_BUFFER_VIEWS) for (NAME in TypedArrayConstructorsList) {
+    if (globalThis[NAME]) setPrototypeOf(globalThis[NAME].prototype, TypedArrayPrototype);
+  }
+}
+
+// WebKit bug - one more object in Uint8ClampedArray prototype chain
+if (NATIVE_ARRAY_BUFFER_VIEWS && getPrototypeOf(Uint8ClampedArrayPrototype) !== TypedArrayPrototype) {
+  setPrototypeOf(Uint8ClampedArrayPrototype, TypedArrayPrototype);
+}
+
+if (DESCRIPTORS && !hasOwn(TypedArrayPrototype, TO_STRING_TAG)) {
+  TYPED_ARRAY_TAG_REQUIRED = true;
+  defineBuiltInAccessor(TypedArrayPrototype, TO_STRING_TAG, {
+    configurable: true,
+    get: function () {
+      return isObject(this) ? this[TYPED_ARRAY_TAG] : undefined;
+    }
+  });
+  for (NAME in TypedArrayConstructorsList) if (globalThis[NAME]) {
+    createNonEnumerableProperty(globalThis[NAME], TYPED_ARRAY_TAG, NAME);
+  }
+}
+
+module.exports = {
+  NATIVE_ARRAY_BUFFER_VIEWS: NATIVE_ARRAY_BUFFER_VIEWS,
+  TYPED_ARRAY_TAG: TYPED_ARRAY_TAG_REQUIRED && TYPED_ARRAY_TAG,
+  aTypedArray: aTypedArray,
+  aTypedArrayConstructor: aTypedArrayConstructor,
+  exportTypedArrayMethod: exportTypedArrayMethod,
+  exportTypedArrayStaticMethod: exportTypedArrayStaticMethod,
+  getTypedArrayConstructor: getTypedArrayConstructor,
+  isView: isView,
+  isTypedArray: isTypedArray,
+  TypedArray: TypedArray,
+  TypedArrayPrototype: TypedArrayPrototype
+};
 
 
 /***/ }),
@@ -2543,11 +2980,14 @@ module.exports = {
 
 var $ = __webpack_require__(6518);
 var symmetricDifference = __webpack_require__(3650);
+var setMethodGetKeysBeforeCloning = __webpack_require__(9835);
 var setMethodAcceptSetLike = __webpack_require__(4916);
+
+var FORCED = !setMethodAcceptSetLike('symmetricDifference') || !setMethodGetKeysBeforeCloning('symmetricDifference');
 
 // `Set.prototype.symmetricDifference` method
 // https://tc39.es/ecma262/#sec-set.prototype.symmetricdifference
-$({ target: 'Set', proto: true, real: true, forced: !setMethodAcceptSetLike('symmetricDifference') }, {
+$({ target: 'Set', proto: true, real: true, forced: FORCED }, {
   symmetricDifference: symmetricDifference
 });
 
@@ -2602,6 +3042,60 @@ var SetHelpers = __webpack_require__(4402);
 module.exports = uncurryThisAccessor(SetHelpers.proto, 'size', 'get') || function (set) {
   return set.size;
 };
+
+
+/***/ }),
+
+/***/ 5213:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var globalThis = __webpack_require__(4576);
+var fails = __webpack_require__(9039);
+
+// babel-minify and Closure Compiler transpiles RegExp('.', 'd') -> /./d and it causes SyntaxError
+var RegExp = globalThis.RegExp;
+
+var FLAGS_GETTER_IS_CORRECT = !fails(function () {
+  var INDICES_SUPPORT = true;
+  try {
+    RegExp('.', 'd');
+  } catch (error) {
+    INDICES_SUPPORT = false;
+  }
+
+  var O = {};
+  // modern V8 bug
+  var calls = '';
+  var expected = INDICES_SUPPORT ? 'dgimsy' : 'gimsy';
+
+  var addGetter = function (key, chr) {
+    // eslint-disable-next-line es/no-object-defineproperty -- safe
+    Object.defineProperty(O, key, { get: function () {
+      calls += chr;
+      return true;
+    } });
+  };
+
+  var pairs = {
+    dotAll: 's',
+    global: 'g',
+    ignoreCase: 'i',
+    multiline: 'm',
+    sticky: 'y'
+  };
+
+  if (INDICES_SUPPORT) pairs.hasIndices = 'd';
+
+  for (var key in pairs) addGetter(key, pairs[key]);
+
+  // eslint-disable-next-line es/no-object-getownpropertydescriptor -- safe
+  var result = Object.getOwnPropertyDescriptor(RegExp.prototype, 'flags').get.call(O);
+
+  return result !== expected || calls !== expected;
+});
+
+module.exports = { correct: FLAGS_GETTER_IS_CORRECT };
 
 
 /***/ }),
@@ -2668,11 +3162,22 @@ var uncurryThis = __webpack_require__(9504);
 var anUint8Array = __webpack_require__(4154);
 var notDetached = __webpack_require__(5169);
 
-var numberToString = uncurryThis(1.0.toString);
+var numberToString = uncurryThis(1.1.toString);
+
+var Uint8Array = globalThis.Uint8Array;
+
+var INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS = !Uint8Array || !Uint8Array.prototype.toHex || !(function () {
+  try {
+    var target = new Uint8Array([255, 255, 255, 255, 255, 255, 255, 255]);
+    return target.toHex() === 'ffffffffffffffff';
+  } catch (error) {
+    return false;
+  }
+})();
 
 // `Uint8Array.prototype.toHex` method
 // https://github.com/tc39/proposal-arraybuffer-base64
-if (globalThis.Uint8Array) $({ target: 'Uint8Array', proto: true }, {
+if (Uint8Array) $({ target: 'Uint8Array', proto: true, forced: INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS }, {
   toHex: function toHex() {
     anUint8Array(this);
     notDetached(this.buffer);
@@ -2779,6 +3284,26 @@ $({ target: 'URL', stat: true, forced: !USE_NATIVE_URL }, {
     }
   }
 });
+
+
+/***/ }),
+
+/***/ 5854:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var toPrimitive = __webpack_require__(2777);
+
+var $TypeError = TypeError;
+
+// `ToBigInt` abstract operation
+// https://tc39.es/ecma262/#sec-tobigint
+module.exports = function (argument) {
+  var prim = toPrimitive(argument, 'number');
+  if (typeof prim == 'number') throw new $TypeError("Can't convert number to bigint");
+  // eslint-disable-next-line es/no-bigint -- safe
+  return BigInt(prim);
+};
 
 
 /***/ }),
@@ -3524,10 +4049,10 @@ var SHARED = '__core-js_shared__';
 var store = module.exports = globalThis[SHARED] || defineGlobalProperty(SHARED, {});
 
 (store.versions || (store.versions = [])).push({
-  version: '3.42.0',
+  version: '3.44.0',
   mode: IS_PURE ? 'pure' : 'global',
   copyright: '© 2014-2025 Denis Pushkarev (zloirock.ru)',
-  license: 'https://github.com/zloirock/core-js/blob/v3.42.0/LICENSE',
+  license: 'https://github.com/zloirock/core-js/blob/v3.44.0/LICENSE',
   source: 'https://github.com/zloirock/core-js'
 });
 
@@ -3540,15 +4065,38 @@ var store = module.exports = globalThis[SHARED] || defineGlobalProperty(SHARED, 
 
 var $ = __webpack_require__(6518);
 var difference = __webpack_require__(3440);
+var fails = __webpack_require__(9039);
 var setMethodAcceptSetLike = __webpack_require__(4916);
 
-var INCORRECT = !setMethodAcceptSetLike('difference', function (result) {
+var SET_LIKE_INCORRECT_BEHAVIOR = !setMethodAcceptSetLike('difference', function (result) {
   return result.size === 0;
+});
+
+var FORCED = SET_LIKE_INCORRECT_BEHAVIOR || fails(function () {
+  // https://bugs.webkit.org/show_bug.cgi?id=288595
+  var setLike = {
+    size: 1,
+    has: function () { return true; },
+    keys: function () {
+      var index = 0;
+      return {
+        next: function () {
+          var done = index++ > 1;
+          if (baseSet.has(1)) baseSet.clear();
+          return { done: done, value: 2 };
+        }
+      };
+    }
+  };
+  // eslint-disable-next-line es/no-set -- testing
+  var baseSet = new Set([1, 2, 3, 4]);
+  // eslint-disable-next-line es/no-set-prototype-difference -- testing
+  return baseSet.difference(setLike).size !== 3;
 });
 
 // `Set.prototype.difference` method
 // https://tc39.es/ecma262/#sec-set.prototype.difference
-$({ target: 'Set', proto: true, real: true, forced: INCORRECT }, {
+$({ target: 'Set', proto: true, real: true, forced: FORCED }, {
   difference: difference
 });
 
@@ -3722,7 +4270,7 @@ var $ = __webpack_require__(6518);
 var $transfer = __webpack_require__(5636);
 
 // `ArrayBuffer.prototype.transferToFixedLength` method
-// https://tc39.es/proposal-arraybuffer-transfer/#sec-arraybuffer.prototype.transfertofixedlength
+// https://tc39.es/ecma262/#sec-arraybuffer.prototype.transfertofixedlength
 if ($transfer) $({ target: 'ArrayBuffer', proto: true }, {
   transferToFixedLength: function transferToFixedLength() {
     return $transfer(this, arguments.length ? arguments[0] : undefined, false);
@@ -3808,7 +4356,7 @@ var $ = __webpack_require__(6518);
 var $transfer = __webpack_require__(5636);
 
 // `ArrayBuffer.prototype.transfer` method
-// https://tc39.es/proposal-arraybuffer-transfer/#sec-arraybuffer.prototype.transfer
+// https://tc39.es/ecma262/#sec-arraybuffer.prototype.transfer
 if ($transfer) $({ target: 'ArrayBuffer', proto: true }, {
   transfer: function transfer() {
     return $transfer(this, arguments.length ? arguments[0] : undefined, true);
@@ -4027,7 +4575,7 @@ var iterateSimple = __webpack_require__(507);
 var iteratorClose = __webpack_require__(9539);
 
 // `Set.prototype.isSupersetOf` method
-// https://tc39.github.io/proposal-set-methods/#Set.prototype.isSupersetOf
+// https://tc39.es/ecma262/#sec-set.prototype.issupersetof
 module.exports = function isSupersetOf(other) {
   var O = aSet(this);
   var otherRec = getSetRecord(other);
@@ -4214,7 +4762,7 @@ var add = SetHelpers.add;
 var has = SetHelpers.has;
 
 // `Set.prototype.intersection` method
-// https://github.com/tc39/proposal-set-methods
+// https://tc39.es/ecma262/#sec-set.prototype.intersection
 module.exports = function intersection(other) {
   var O = aSet(this);
   var otherRec = getSetRecord(other);
@@ -4543,9 +5091,17 @@ var $fromBase64 = __webpack_require__(9143);
 
 var Uint8Array = globalThis.Uint8Array;
 
+var INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS = !Uint8Array || !Uint8Array.fromBase64 || !function () {
+  try {
+    Uint8Array.fromBase64('', null);
+  } catch (error) {
+    return true;
+  }
+}();
+
 // `Uint8Array.fromBase64` method
 // https://github.com/tc39/proposal-arraybuffer-base64
-if (Uint8Array) $({ target: 'Uint8Array', stat: true }, {
+if (Uint8Array) $({ target: 'Uint8Array', stat: true, forced: INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS }, {
   fromBase64: function fromBase64(string /* , options */) {
     var result = $fromBase64(string, arguments.length > 1 ? arguments[1] : undefined, null, 0x1FFFFFFFFFFFFF);
     return arrayFromConstructorAndList(Uint8Array, result.bytes);
@@ -4589,10 +5145,13 @@ var getMethod = __webpack_require__(5966);
 var IteratorPrototype = (__webpack_require__(7657).IteratorPrototype);
 var createIterResultObject = __webpack_require__(2529);
 var iteratorClose = __webpack_require__(9539);
+var iteratorCloseAll = __webpack_require__(1385);
 
 var TO_STRING_TAG = wellKnownSymbol('toStringTag');
 var ITERATOR_HELPER = 'IteratorHelper';
 var WRAP_FOR_VALID_ITERATOR = 'WrapForValidIterator';
+var NORMAL = 'normal';
+var THROW = 'throw';
 var setInternalState = InternalStateModule.set;
 
 var createIteratorProxyPrototype = function (IS_ITERATOR) {
@@ -4623,11 +5182,16 @@ var createIteratorProxyPrototype = function (IS_ITERATOR) {
         return returnMethod ? call(returnMethod, iterator) : createIterResultObject(undefined, true);
       }
       if (state.inner) try {
-        iteratorClose(state.inner.iterator, 'normal');
+        iteratorClose(state.inner.iterator, NORMAL);
       } catch (error) {
-        return iteratorClose(iterator, 'throw', error);
+        return iteratorClose(iterator, THROW, error);
       }
-      if (iterator) iteratorClose(iterator, 'normal');
+      if (state.openIters) try {
+        iteratorCloseAll(state.openIters, NORMAL);
+      } catch (error) {
+        return iteratorClose(iterator, THROW, error);
+      }
+      if (iterator) iteratorClose(iterator, NORMAL);
       return createIterResultObject(undefined, true);
     }
   });
@@ -4664,61 +5228,21 @@ module.exports = function (nextHandler, IS_ITERATOR, RETURN_HANDLER_RESULT) {
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
 
 
-var globalThis = __webpack_require__(4576);
 var DESCRIPTORS = __webpack_require__(3724);
 var defineBuiltInAccessor = __webpack_require__(2106);
-var regExpFlags = __webpack_require__(7979);
-var fails = __webpack_require__(9039);
-
-// babel-minify and Closure Compiler transpiles RegExp('.', 'd') -> /./d and it causes SyntaxError
-var RegExp = globalThis.RegExp;
-var RegExpPrototype = RegExp.prototype;
-
-var FORCED = DESCRIPTORS && fails(function () {
-  var INDICES_SUPPORT = true;
-  try {
-    RegExp('.', 'd');
-  } catch (error) {
-    INDICES_SUPPORT = false;
-  }
-
-  var O = {};
-  // modern V8 bug
-  var calls = '';
-  var expected = INDICES_SUPPORT ? 'dgimsy' : 'gimsy';
-
-  var addGetter = function (key, chr) {
-    // eslint-disable-next-line es/no-object-defineproperty -- safe
-    Object.defineProperty(O, key, { get: function () {
-      calls += chr;
-      return true;
-    } });
-  };
-
-  var pairs = {
-    dotAll: 's',
-    global: 'g',
-    ignoreCase: 'i',
-    multiline: 'm',
-    sticky: 'y'
-  };
-
-  if (INDICES_SUPPORT) pairs.hasIndices = 'd';
-
-  for (var key in pairs) addGetter(key, pairs[key]);
-
-  // eslint-disable-next-line es/no-object-getownpropertydescriptor -- safe
-  var result = Object.getOwnPropertyDescriptor(RegExpPrototype, 'flags').get.call(O);
-
-  return result !== expected || calls !== expected;
-});
+var regExpFlagsDetection = __webpack_require__(5213);
+var regExpFlagsGetterImplementation = __webpack_require__(7979);
 
 // `RegExp.prototype.flags` getter
 // https://tc39.es/ecma262/#sec-get-regexp.prototype.flags
-if (FORCED) defineBuiltInAccessor(RegExpPrototype, 'flags', {
-  configurable: true,
-  get: regExpFlags
-});
+if (DESCRIPTORS && !regExpFlagsDetection.correct) {
+  defineBuiltInAccessor(RegExp.prototype, 'flags', {
+    configurable: true,
+    get: regExpFlagsGetterImplementation
+  });
+
+  regExpFlagsDetection.correct = true;
+}
 
 
 /***/ }),
@@ -4824,6 +5348,53 @@ module.exports = NATIVE_BIND ? call.bind(call) : function () {
 
 /***/ }),
 
+/***/ 9577:
+/***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var arrayWith = __webpack_require__(9928);
+var ArrayBufferViewCore = __webpack_require__(4644);
+var isBigIntArray = __webpack_require__(1108);
+var toIntegerOrInfinity = __webpack_require__(1291);
+var toBigInt = __webpack_require__(5854);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var getTypedArrayConstructor = ArrayBufferViewCore.getTypedArrayConstructor;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+var PROPER_ORDER = function () {
+  try {
+    // eslint-disable-next-line no-throw-literal, es/no-typed-arrays, es/no-array-prototype-with -- required for testing
+    new Int8Array(1)['with'](2, { valueOf: function () { throw 8; } });
+  } catch (error) {
+    // some early implementations, like WebKit, does not follow the final semantic
+    // https://github.com/tc39/proposal-change-array-by-copy/pull/86
+    return error === 8;
+  }
+}();
+
+// Bug in WebKit. It should truncate a negative fractional index to zero, but instead throws an error
+var THROW_ON_NEGATIVE_FRACTIONAL_INDEX = PROPER_ORDER && function () {
+  try {
+    // eslint-disable-next-line es/no-typed-arrays, es/no-array-prototype-with -- required for testing
+    new Int8Array(1)['with'](-0.5, 1);
+  } catch (error) {
+    return true;
+  }
+}();
+
+// `%TypedArray%.prototype.with` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.with
+exportTypedArrayMethod('with', { 'with': function (index, value) {
+  var O = aTypedArray(this);
+  var relativeIndex = toIntegerOrInfinity(index);
+  var actualValue = isBigIntArray(O) ? toBigInt(value) : +value;
+  return arrayWith(O, getTypedArrayConstructor(O), relativeIndex, actualValue);
+} }['with'], !PROPER_ORDER || THROW_ON_NEGATIVE_FRACTIONAL_INDEX);
+
+
+/***/ }),
+
 /***/ 9617:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
@@ -4883,9 +5454,20 @@ var base64UrlAlphabet = base64Map.i2cUrl;
 
 var charAt = uncurryThis(''.charAt);
 
+var Uint8Array = globalThis.Uint8Array;
+
+var INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS = !Uint8Array || !Uint8Array.prototype.toBase64 || !function () {
+  try {
+    var target = new Uint8Array();
+    target.toBase64(null);
+  } catch (error) {
+    return true;
+  }
+}();
+
 // `Uint8Array.prototype.toBase64` method
 // https://github.com/tc39/proposal-arraybuffer-base64
-if (globalThis.Uint8Array) $({ target: 'Uint8Array', proto: true }, {
+if (Uint8Array) $({ target: 'Uint8Array', proto: true, forced: INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS }, {
   toBase64: function toBase64(/* options */) {
     var array = anUint8Array(this);
     var options = arguments.length ? anObjectOrUndefined(arguments[0]) : undefined;
@@ -4943,6 +5525,68 @@ if (globalThis.Uint8Array) $({ target: 'Uint8Array', proto: true }, {
     return { read: read, written: read / 2 };
   }
 });
+
+
+/***/ }),
+
+/***/ 9835:
+/***/ ((module) => {
+
+
+// Should get iterator record of a set-like object before cloning this
+// https://bugs.webkit.org/show_bug.cgi?id=289430
+module.exports = function (METHOD_NAME) {
+  try {
+    // eslint-disable-next-line es/no-set -- needed for test
+    var baseSet = new Set();
+    var setLike = {
+      size: 0,
+      has: function () { return true; },
+      keys: function () {
+        // eslint-disable-next-line es/no-object-defineproperty -- needed for test
+        return Object.defineProperty({}, 'next', {
+          get: function () {
+            baseSet.clear();
+            baseSet.add(4);
+            return function () {
+              return { done: true };
+            };
+          }
+        });
+      }
+    };
+    var result = baseSet[METHOD_NAME](setLike);
+
+    return result.size === 1 && result.values().next().value === 4;
+  } catch (error) {
+    return false;
+  }
+};
+
+
+/***/ }),
+
+/***/ 9928:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var lengthOfArrayLike = __webpack_require__(6198);
+var toIntegerOrInfinity = __webpack_require__(1291);
+
+var $RangeError = RangeError;
+
+// https://tc39.es/ecma262/#sec-array.prototype.with
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.with
+module.exports = function (O, C, index, value) {
+  var len = lengthOfArrayLike(O);
+  var relativeIndex = toIntegerOrInfinity(index);
+  var actualIndex = relativeIndex < 0 ? len + relativeIndex : relativeIndex;
+  if (actualIndex >= len || actualIndex < 0) throw new $RangeError('Incorrect index');
+  var A = new C(len);
+  var k = 0;
+  for (; k < len; k++) A[k] = k === actualIndex ? value : O[k];
+  return A;
+};
 
 
 /***/ })
@@ -5006,6 +5650,8 @@ var es_set_is_superset_of_v2 = __webpack_require__(2475);
 var es_set_symmetric_difference_v2 = __webpack_require__(5024);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.set.union.v2.js
 var es_set_union_v2 = __webpack_require__(1698);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.with.js
+var es_typed_array_with = __webpack_require__(9577);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/esnext.uint8-array.set-from-base64.js
 var esnext_uint8_array_set_from_base64 = __webpack_require__(1549);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/esnext.uint8-array.set-from-hex.js
@@ -5020,6 +5666,8 @@ var web_self = __webpack_require__(3611);
 var es_iterator_reduce = __webpack_require__(8237);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.promise.try.js
 var es_promise_try = __webpack_require__(1689);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/esnext.math.sum-precise.js
+var esnext_math_sum_precise = __webpack_require__(4235);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/esnext.uint8-array.from-base64.js
 var esnext_uint8_array_from_base64 = __webpack_require__(9432);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/web.dom-exception.stack.js
@@ -5027,6 +5675,8 @@ var web_dom_exception_stack = __webpack_require__(4979);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/web.url.parse.js
 var web_url_parse = __webpack_require__(5781);
 ;// ./src/shared/util.js
+
+
 
 
 
@@ -5071,7 +5721,8 @@ const AnnotationEditorType = {
   HIGHLIGHT: 9,
   STAMP: 13,
   INK: 15,
-  SIGNATURE: 101
+  SIGNATURE: 101,
+  COMMENT: 102
 };
 const AnnotationEditorParamsType = {
   RESIZE: 1,
@@ -5083,10 +5734,9 @@ const AnnotationEditorParamsType = {
   INK_THICKNESS: 22,
   INK_OPACITY: 23,
   HIGHLIGHT_COLOR: 31,
-  HIGHLIGHT_DEFAULT_COLOR: 32,
-  HIGHLIGHT_THICKNESS: 33,
-  HIGHLIGHT_FREE: 34,
-  HIGHLIGHT_SHOW_ALL: 35,
+  HIGHLIGHT_THICKNESS: 32,
+  HIGHLIGHT_FREE: 33,
+  HIGHLIGHT_SHOW_ALL: 34,
   DRAW_STEP: 41
 };
 const PermissionFlag = {
@@ -5796,6 +6446,9 @@ function isArrayEqual(arr1, arr2) {
   return true;
 }
 function getModificationDate(date = new Date()) {
+  if (!(date instanceof Date)) {
+    date = new Date(date);
+  }
   const buffer = [date.getUTCFullYear().toString(), (date.getUTCMonth() + 1).toString().padStart(2, "0"), date.getUTCDate().toString().padStart(2, "0"), date.getUTCHours().toString().padStart(2, "0"), date.getUTCMinutes().toString().padStart(2, "0"), date.getUTCSeconds().toString().padStart(2, "0")];
   return buffer.join("");
 }
@@ -6026,6 +6679,33 @@ class Dict {
   }
   set(key, value) {
     this._map.set(key, value);
+  }
+  setIfNotExists(key, value) {
+    if (!this.has(key)) {
+      this.set(key, value);
+    }
+  }
+  setIfNumber(key, value) {
+    if (typeof value === "number") {
+      this.set(key, value);
+    }
+  }
+  setIfArray(key, value) {
+    if (Array.isArray(value) || ArrayBuffer.isView(value)) {
+      this.set(key, value);
+    }
+  }
+  setIfDefined(key, value) {
+    if (value !== undefined && value !== null) {
+      this.set(key, value);
+    }
+  }
+  setIfName(key, value) {
+    if (typeof value === "string") {
+      this.set(key, Name.get(value));
+    } else if (value instanceof Name) {
+      this.set(key, value);
+    }
   }
   has(key) {
     return this._map.has(key);
@@ -6297,6 +6977,7 @@ class BaseStream {
 
 
 
+
 const PDF_VERSION_REGEXP = /^[1-9]\.\d$/;
 const MAX_INT_32 = 2 ** 31 - 1;
 const MIN_INT_32 = -(2 ** 31);
@@ -6528,7 +7209,7 @@ function _collectJS(entry, xref, list, parents) {
       }
       code &&= stringToPDFString(code, true).replaceAll("\x00", "");
       if (code) {
-        list.push(code);
+        list.push(code.trim());
       }
     }
     _collectJS(entry.getRaw("Next"), xref, list, parents);
@@ -6709,10 +7390,16 @@ function getNewAnnotationsMap(annotationStorage) {
   return newAnnotationsByPage.size > 0 ? newAnnotationsByPage : null;
 }
 function stringToAsciiOrUTF16BE(str) {
+  if (str === null || str === undefined) {
+    return str;
+  }
   return isAscii(str) ? str : stringToUTF16String(str, true);
 }
 function isAscii(str) {
-  return /^[\x00-\x7F]*$/.test(str);
+  if (typeof str !== "string") {
+    return false;
+  }
+  return !str || /^[\x00-\x7F]*$/.test(str);
 }
 function stringToUTF16HexString(str) {
   const buf = [];
@@ -6756,6 +7443,7 @@ var web_url_search_params_has = __webpack_require__(7566);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/web.url-search-params.size.js
 var web_url_search_params_size = __webpack_require__(8721);
 ;// ./external/qcms/qcms_utils.js
+
 
 
 
@@ -6825,6 +7513,7 @@ function make_cssRGB(ptr) {
 }
 
 ;// ./external/qcms/qcms.js
+
 
 
 
@@ -7019,6 +7708,7 @@ async function __wbg_init(module_or_path) {
 
 /* harmony default export */ const qcms = ((/* unused pure expression or super */ null && (__wbg_init)));
 ;// ./src/core/colorspace.js
+
 
 
 
@@ -7725,6 +8415,7 @@ class LabCS extends ColorSpace {
 
 
 
+
 function fetchSync(url) {
   const xhr = new XMLHttpRequest();
   xhr.open("GET", url, false);
@@ -7865,6 +8556,7 @@ class CmykICCBasedCS extends IccColorSpace {
 
 
 
+
 class Stream extends BaseStream {
   constructor(arrayBuffer, start, length, dict) {
     super();
@@ -7931,6 +8623,7 @@ class NullStream extends Stream {
 }
 
 ;// ./src/core/chunked_stream.js
+
 
 
 
@@ -8376,6 +9069,7 @@ class ChunkedStreamManager {
 
 
 
+
 function convertToRGBA(params) {
   switch (params.kind) {
     case ImageKind.GRAYSCALE_1BPP:
@@ -8483,6 +9177,7 @@ function grayToRGBA(src, dest) {
 }
 
 ;// ./src/core/image_resizer.js
+
 
 
 
@@ -8877,6 +9572,7 @@ var es_iterator_filter = __webpack_require__(2489);
 
 
 
+
 const emptyBuffer = new Uint8Array(0);
 class DecodeStream extends BaseStream {
   constructor(maybeMinBufferLength) {
@@ -9256,6 +9952,7 @@ class ColorSpaceUtils {
 }
 
 ;// ./src/core/jpg.js
+
 
 
 
@@ -10385,6 +11082,7 @@ class JpegImage {
 
 
 
+
 class JpegStream extends DecodeStream {
   static #isImageDecoderSupported = FeatureTest.isImageDecoderSupported;
   constructor(stream, maybeLength, params) {
@@ -10512,6 +11210,7 @@ class JpegStream extends DecodeStream {
 }
 
 ;// ./external/openjpeg/openjpeg.js
+
 
 
 
@@ -11257,6 +11956,7 @@ class JpxImage {
 
 
 
+
 function addState(parentState, pattern, checkFn, iterateFn, processFn) {
   let state = parentState;
   for (let i = 0, ii = pattern.length - 1; i < ii; i++) {
@@ -11868,6 +12568,7 @@ var es_iterator_for_each = __webpack_require__(7588);
 
 
 
+
 function hexToInt(a, size) {
   let n = 0;
   for (let i = 0; i <= size; i++) {
@@ -12133,6 +12834,7 @@ class BinaryCMapReader {
 
 
 
+
 class Ascii85Stream extends DecodeStream {
   constructor(str, maybeLength) {
     if (maybeLength) {
@@ -12249,6 +12951,7 @@ class AsciiHexStream extends DecodeStream {
 }
 
 ;// ./src/core/ccitt.js
+
 
 
 
@@ -12802,6 +13505,7 @@ class CCITTFaxStream extends DecodeStream {
 }
 
 ;// ./src/core/flate_stream.js
+
 
 
 
@@ -13434,6 +14138,7 @@ class ArithmeticDecoder {
 }
 
 ;// ./src/core/jbig2.js
+
 
 
 
@@ -15287,6 +15992,7 @@ class JpxStream extends DecodeStream {
 
 
 
+
 class LZWStream extends DecodeStream {
   constructor(str, maybeLength, earlyChange) {
     super(maybeLength);
@@ -15403,6 +16109,7 @@ class LZWStream extends DecodeStream {
 }
 
 ;// ./src/core/predictor_stream.js
+
 
 
 
@@ -15632,6 +16339,7 @@ class RunLengthStream extends DecodeStream {
 }
 
 ;// ./src/core/parser.js
+
 
 
 
@@ -21844,6 +22552,7 @@ function clearUnicodeCaches() {
 
 
 
+
 const SEAC_ANALYSIS_ENABLED = true;
 const FontFlags = {
   FixedPitch: 1,
@@ -22099,6 +22808,7 @@ const ExpertCharset = [".notdef", "space", "exclamsmall", "Hungarumlautsmall", "
 const ExpertSubsetCharset = [".notdef", "space", "dollaroldstyle", "dollarsuperior", "parenleftsuperior", "parenrightsuperior", "twodotenleader", "onedotenleader", "comma", "hyphen", "period", "fraction", "zerooldstyle", "oneoldstyle", "twooldstyle", "threeoldstyle", "fouroldstyle", "fiveoldstyle", "sixoldstyle", "sevenoldstyle", "eightoldstyle", "nineoldstyle", "colon", "semicolon", "commasuperior", "threequartersemdash", "periodsuperior", "asuperior", "bsuperior", "centsuperior", "dsuperior", "esuperior", "isuperior", "lsuperior", "msuperior", "nsuperior", "osuperior", "rsuperior", "ssuperior", "tsuperior", "ff", "fi", "fl", "ffi", "ffl", "parenleftinferior", "parenrightinferior", "hyphensuperior", "colonmonetary", "onefitted", "rupiah", "centoldstyle", "figuredash", "hypheninferior", "onequarter", "onehalf", "threequarters", "oneeighth", "threeeighths", "fiveeighths", "seveneighths", "onethird", "twothirds", "zerosuperior", "onesuperior", "twosuperior", "threesuperior", "foursuperior", "fivesuperior", "sixsuperior", "sevensuperior", "eightsuperior", "ninesuperior", "zeroinferior", "oneinferior", "twoinferior", "threeinferior", "fourinferior", "fiveinferior", "sixinferior", "seveninferior", "eightinferior", "nineinferior", "centinferior", "dollarinferior", "periodinferior", "commainferior"];
 
 ;// ./src/core/cff_parser.js
+
 
 
 
@@ -23465,7 +24175,7 @@ class CFFCompiler {
     const numGlyphsLessNotDef = numGlyphs - 1;
     if (isCIDFont) {
       const nLeft = numGlyphsLessNotDef - 1;
-      out = new Uint8Array([2, 0, 0, nLeft >> 8 & 0xff, nLeft & 0xff]);
+      out = new Uint8Array([2, 0, 1, nLeft >> 8 & 0xff, nLeft & 0xff]);
     } else {
       const length = 1 + numGlyphsLessNotDef * 2;
       out = new Uint8Array(length);
@@ -24636,6 +25346,7 @@ class CFFFont {
 }
 
 ;// ./src/core/font_renderer.js
+
 
 
 
@@ -28478,6 +29189,8 @@ const getFontBasicMetrics = getLookupTableFactory(function (t) {
 
 
 
+
+
 const ON_CURVE_POINT = 1 << 0;
 const X_SHORT_VECTOR = 1 << 1;
 const Y_SHORT_VECTOR = 1 << 2;
@@ -29016,6 +29729,7 @@ class CompositeGlyph {
 
 
 
+
 function writeInt16(dest, offset, num) {
   dest[offset] = num >> 8 & 0xff;
   dest[offset + 1] = num & 0xff;
@@ -29120,6 +29834,7 @@ class OpenTypeFileBuilder {
 }
 
 ;// ./src/core/type1_parser.js
+
 
 
 
@@ -29970,6 +30685,7 @@ class Type1Font {
 }
 
 ;// ./src/core/fonts.js
+
 
 
 
@@ -32461,6 +33177,7 @@ class ErrorFont {
 
 
 
+
 const ShadingType = {
   FUNCTION_BASED: 1,
   AXIAL: 2,
@@ -34041,6 +34758,7 @@ class GlobalImageCache {
 
 
 
+
 class PDFFunctionFactory {
   constructor({
     xref,
@@ -35484,6 +36202,7 @@ function getFontSubstitution(systemFontCache, idFactory, localFontPath, baseFont
 
 
 
+
 const SEED = 0xc3d2e1f0;
 const MASK_HIGH = 0xffff0000;
 const MASK_LOW = 0xffff;
@@ -35577,6 +36296,7 @@ class MurmurHash3_64 {
 }
 
 ;// ./src/core/image.js
+
 
 
 
@@ -36381,6 +37101,7 @@ class PDFImage {
 }
 
 ;// ./src/core/evaluator.js
+
 
 
 
@@ -38096,7 +38817,8 @@ class PartialEvaluator {
     markedContentData = null,
     disableNormalization = false,
     keepWhiteSpace = false,
-    prevRefs = null
+    prevRefs = null,
+    intersector = null
   }) {
     const objId = stream.dict?.objId;
     const seenRefs = new RefSet(prevRefs);
@@ -38173,6 +38895,7 @@ class PartialEvaluator {
       transform = textContentItem.prevTransform,
       fontName = textContentItem.fontName
     }) {
+      intersector?.addExtraChar(" ");
       textContent.items.push({
         str: " ",
         dir: "ltr",
@@ -38479,9 +39202,11 @@ class PartialEvaluator {
         }
         if (!font.vertical) {
           scaledDim *= textState.textHScale;
+          intersector?.addGlyph(getCurrentTextTransform(), scaledDim, 0, glyph.unicode);
           textState.translateTextMatrix(scaledDim, 0);
           textChunk.width += scaledDim;
         } else {
+          intersector?.addGlyph(getCurrentTextTransform(), 0, scaledDim, glyph.unicode);
           textState.translateTextMatrix(0, scaledDim);
           scaledDim = Math.abs(scaledDim);
           textChunk.height += scaledDim;
@@ -38492,8 +39217,11 @@ class PartialEvaluator {
         const glyphUnicode = glyph.unicode;
         if (saveLastChar(glyphUnicode)) {
           textChunk.str.push(" ");
+          intersector?.addExtraChar(" ");
         }
-        textChunk.str.push(glyphUnicode);
+        if (!intersector) {
+          textChunk.str.push(glyphUnicode);
+        }
         if (charSpacing) {
           if (!font.vertical) {
             textState.translateTextMatrix(charSpacing * textState.textHScale, 0);
@@ -38504,6 +39232,7 @@ class PartialEvaluator {
       }
     }
     function appendEOL() {
+      intersector?.addExtraChar("\n");
       resetLastChars();
       if (textContentItem.initialized) {
         textContentItem.hasEOL = true;
@@ -38525,6 +39254,7 @@ class PartialEvaluator {
         if (textContentItem.initialized) {
           resetLastChars();
           textContentItem.str.push(" ");
+          intersector?.addExtraChar(" ");
         }
         return false;
       }
@@ -38565,7 +39295,7 @@ class PartialEvaluator {
       if (batch && length < TEXT_CHUNK_BATCH_SIZE) {
         return;
       }
-      sink.enqueue(textContent, length);
+      sink?.enqueue(textContent, length);
       textContent.items = [];
       textContent.styles = Object.create(null);
     }
@@ -38573,7 +39303,7 @@ class PartialEvaluator {
     return new Promise(function promiseBody(resolve, reject) {
       const next = function (promise) {
         enqueueChunk(true);
-        Promise.all([promise, sink.ready]).then(function () {
+        Promise.all([promise, sink?.ready]).then(function () {
           try {
             promiseBody(resolve, reject);
           } catch (ex) {
@@ -38764,7 +39494,7 @@ class PartialEvaluator {
                   sink.enqueue(chunk, size);
                 },
                 get desiredSize() {
-                  return sink.desiredSize;
+                  return sink.desiredSize ?? 0;
                 },
                 get ready() {
                   return sink.ready;
@@ -38776,7 +39506,7 @@ class PartialEvaluator {
                 resources: localResources instanceof Dict ? localResources : resources,
                 stateManager: xObjStateManager,
                 includeMarkedContent,
-                sink: sinkWrapper,
+                sink: sink && sinkWrapper,
                 seenStyles,
                 viewBox,
                 lang,
@@ -38883,7 +39613,7 @@ class PartialEvaluator {
             }
             break;
         }
-        if (textContent.items.length >= sink.desiredSize) {
+        if (textContent.items.length >= (sink?.desiredSize ?? 1)) {
           stop = true;
           break;
         }
@@ -40500,6 +41230,7 @@ class EvaluatorPreprocessor {
 
 
 
+
 class DefaultAppearanceEvaluator extends EvaluatorPreprocessor {
   constructor(str) {
     super(new StringStream(str));
@@ -40701,11 +41432,11 @@ class FakeUnicodeFont {
   get fontDescriptorRef() {
     if (!FakeUnicodeFont._fontDescriptorRef) {
       const fontDescriptor = new Dict(this.xref);
-      fontDescriptor.set("Type", Name.get("FontDescriptor"));
+      fontDescriptor.setIfName("Type", "FontDescriptor");
       fontDescriptor.set("FontName", this.fontName);
       fontDescriptor.set("FontFamily", "MyriadPro Regular");
       fontDescriptor.set("FontBBox", [0, 0, 0, 0]);
-      fontDescriptor.set("FontStretch", Name.get("Normal"));
+      fontDescriptor.setIfName("FontStretch", "Normal");
       fontDescriptor.set("FontWeight", 400);
       fontDescriptor.set("ItalicAngle", 0);
       FakeUnicodeFont._fontDescriptorRef = this.xref.getNewPersistentRef(fontDescriptor);
@@ -40715,9 +41446,9 @@ class FakeUnicodeFont {
   get descendantFontRef() {
     const descendantFont = new Dict(this.xref);
     descendantFont.set("BaseFont", this.fontName);
-    descendantFont.set("Type", Name.get("Font"));
-    descendantFont.set("Subtype", Name.get("CIDFontType0"));
-    descendantFont.set("CIDToGIDMap", Name.get("Identity"));
+    descendantFont.setIfName("Type", "Font");
+    descendantFont.setIfName("Subtype", "CIDFontType0");
+    descendantFont.setIfName("CIDToGIDMap", "Identity");
     descendantFont.set("FirstChar", this.firstChar);
     descendantFont.set("LastChar", this.lastChar);
     descendantFont.set("FontDescriptor", this.fontDescriptorRef);
@@ -40754,11 +41485,11 @@ class FakeUnicodeFont {
   get baseFontRef() {
     const baseFont = new Dict(this.xref);
     baseFont.set("BaseFont", this.fontName);
-    baseFont.set("Type", Name.get("Font"));
-    baseFont.set("Subtype", Name.get("Type0"));
-    baseFont.set("Encoding", Name.get("Identity-H"));
+    baseFont.setIfName("Type", "Font");
+    baseFont.setIfName("Subtype", "Type0");
+    baseFont.setIfName("Encoding", "Identity-H");
     baseFont.set("DescendantFonts", [this.descendantFontRef]);
-    baseFont.set("ToUnicode", Name.get("Identity-H"));
+    baseFont.setIfName("ToUnicode", "Identity-H");
     return this.xref.getNewPersistentRef(baseFont);
   }
   get resources() {
@@ -40856,7 +41587,7 @@ class FakeUnicodeFont {
       const r0 = new Dict(this.xref);
       r0.set("ca", strokeAlpha);
       r0.set("CA", strokeAlpha);
-      r0.set("Type", Name.get("ExtGState"));
+      r0.setIfName("Type", "ExtGState");
       extGState.set("R0", r0);
       resources.set("ExtGState", extGState);
     }
@@ -40867,8 +41598,8 @@ class FakeUnicodeFont {
     buffer.push("ET", "Q");
     const appearance = buffer.join("\n");
     const appearanceStreamDict = new Dict(this.xref);
-    appearanceStreamDict.set("Subtype", Name.get("Form"));
-    appearanceStreamDict.set("Type", Name.get("XObject"));
+    appearanceStreamDict.setIfName("Subtype", "Form");
+    appearanceStreamDict.setIfName("Type", "XObject");
     appearanceStreamDict.set("BBox", [0, 0, w, h]);
     appearanceStreamDict.set("Length", appearance.length);
     appearanceStreamDict.set("Resources", resources);
@@ -40881,6 +41612,69 @@ class FakeUnicodeFont {
     return ap;
   }
 }
+
+;// ./src/shared/scripting_utils.js
+
+
+function makeColorComp(n) {
+  return Math.floor(Math.max(0, Math.min(1, n)) * 255).toString(16).padStart(2, "0");
+}
+function scaleAndClamp(x) {
+  return Math.max(0, Math.min(255, 255 * x));
+}
+class ColorConverters {
+  static CMYK_G([c, y, m, k]) {
+    return ["G", 1 - Math.min(1, 0.3 * c + 0.59 * m + 0.11 * y + k)];
+  }
+  static G_CMYK([g]) {
+    return ["CMYK", 0, 0, 0, 1 - g];
+  }
+  static G_RGB([g]) {
+    return ["RGB", g, g, g];
+  }
+  static G_rgb([g]) {
+    g = scaleAndClamp(g);
+    return [g, g, g];
+  }
+  static G_HTML([g]) {
+    const G = makeColorComp(g);
+    return `#${G}${G}${G}`;
+  }
+  static RGB_G([r, g, b]) {
+    return ["G", 0.3 * r + 0.59 * g + 0.11 * b];
+  }
+  static RGB_rgb(color) {
+    return color.map(scaleAndClamp);
+  }
+  static RGB_HTML(color) {
+    return `#${color.map(makeColorComp).join("")}`;
+  }
+  static T_HTML() {
+    return "#00000000";
+  }
+  static T_rgb() {
+    return [null];
+  }
+  static CMYK_RGB([c, y, m, k]) {
+    return ["RGB", 1 - Math.min(1, c + k), 1 - Math.min(1, m + k), 1 - Math.min(1, y + k)];
+  }
+  static CMYK_rgb([c, y, m, k]) {
+    return [scaleAndClamp(1 - Math.min(1, c + k)), scaleAndClamp(1 - Math.min(1, m + k)), scaleAndClamp(1 - Math.min(1, y + k))];
+  }
+  static CMYK_HTML(components) {
+    const rgb = this.CMYK_RGB(components).slice(1);
+    return this.RGB_HTML(rgb);
+  }
+  static RGB_CMYK([r, g, b]) {
+    const c = 1 - r;
+    const m = 1 - g;
+    const y = 1 - b;
+    const k = Math.min(c, m, y);
+    return ["CMYK", c, m, y, k];
+  }
+}
+const DateFormats = ["m/d", "m/d/yy", "mm/dd/yy", "mm/yy", "d-mmm", "d-mmm-yy", "dd-mmm-yy", "yy-mm-dd", "mmm-yy", "mmmm-yy", "mmm d, yyyy", "mmmm d, yyyy", "m/d/yy h:MM tt", "m/d/yy HH:MM"];
+const TimeFormats = ["HH:MM", "h:MM tt", "HH:MM:ss", "h:MM:ss tt"];
 
 ;// ./src/core/name_number_tree.js
 
@@ -42393,6 +43187,7 @@ class StructTreePage {
 }
 
 ;// ./src/core/catalog.js
+
 
 
 
@@ -44634,7 +45429,6 @@ class TextMeasure {
 
 
 
-
 const namePattern = /^[^.[]+/;
 const indexPattern = /^[^\]]+/;
 const operators = {
@@ -45693,6 +46487,7 @@ class Option10 extends IntegerObject {
 
 
 
+
 function measureToString(m) {
   if (typeof m === "string") {
     return "0px";
@@ -46191,6 +46986,7 @@ function fixURL(str) {
 }
 
 ;// ./src/core/xfa/layout.js
+
 
 
 
@@ -54693,6 +55489,10 @@ class XFAFactory {
 
 
 
+
+
+
+
 class AnnotationFactory {
   static createGlobals(pdfManager) {
     return Promise.all([pdfManager.ensureCatalog("acroForm"), pdfManager.ensureDoc("xfaDatasets"), pdfManager.ensureCatalog("structTreeRoot"), pdfManager.ensureCatalog("baseUrl"), pdfManager.ensureCatalog("attachments"), pdfManager.ensureCatalog("globalColorSpaceCache")]).then(([acroForm, xfaDatasets, structTreeRoot, baseUrl, attachments, globalColorSpaceCache]) => ({
@@ -54868,10 +55668,10 @@ class AnnotationFactory {
         case AnnotationEditorType.FREETEXT:
           if (!baseFontRef) {
             const baseFont = new Dict(xref);
-            baseFont.set("BaseFont", Name.get("Helvetica"));
-            baseFont.set("Type", Name.get("Font"));
-            baseFont.set("Subtype", Name.get("Type1"));
-            baseFont.set("Encoding", Name.get("WinAnsiEncoding"));
+            baseFont.setIfName("BaseFont", "Helvetica");
+            baseFont.setIfName("Type", "Font");
+            baseFont.setIfName("Subtype", "Type1");
+            baseFont.setIfName("Encoding", "WinAnsiEncoding");
             baseFontRef = xref.getNewTemporaryRef();
             changes.put(baseFontRef, {
               data: baseFont
@@ -54923,7 +55723,7 @@ class AnnotationFactory {
       }
     }
     return {
-      annotations: await Promise.all(promises)
+      annotations: (await Promise.all(promises)).flat()
     };
   }
   static async printNewAnnotations(annotationGlobals, evaluator, task, annotations, imagePromises) {
@@ -55012,8 +55812,8 @@ function getRgbColor(color, defaultColor = new Uint8ClampedArray(3)) {
       return defaultColor;
   }
 }
-function getPdfColorArray(color) {
-  return Array.from(color, c => c / 255);
+function getPdfColorArray(color, defaultValue = null) {
+  return color && Array.from(color, c => c / 255) || defaultValue;
 }
 function getQuadPoints(dict, rect) {
   const quadPoints = dict.getArray("QuadPoints");
@@ -55417,6 +56217,9 @@ class Annotation {
   async save(evaluator, task, annotationStorage, changes) {
     return null;
   }
+  get overlaysTextContent() {
+    return false;
+  }
   get hasTextContent() {
     return false;
   }
@@ -55710,20 +56513,16 @@ class MarkupAnnotation extends Annotation {
     buffer.push("Q");
     const formDict = new Dict(xref);
     const appearanceStreamDict = new Dict(xref);
-    appearanceStreamDict.set("Subtype", Name.get("Form"));
+    appearanceStreamDict.setIfName("Subtype", "Form");
     const appearanceStream = new StringStream(buffer.join(" "));
     appearanceStream.dict = appearanceStreamDict;
     formDict.set("Fm0", appearanceStream);
     const gsDict = new Dict(xref);
     if (blendMode) {
-      gsDict.set("BM", Name.get(blendMode));
+      gsDict.setIfName("BM", blendMode);
     }
-    if (typeof strokeAlpha === "number") {
-      gsDict.set("CA", strokeAlpha);
-    }
-    if (typeof fillAlpha === "number") {
-      gsDict.set("ca", fillAlpha);
-    }
+    gsDict.setIfNumber("CA", strokeAlpha);
+    gsDict.setIfNumber("ca", fillAlpha);
     const stateDict = new Dict(xref);
     stateDict.set("GS0", gsDict);
     const resources = new Dict(xref);
@@ -55757,9 +56556,30 @@ class MarkupAnnotation extends Annotation {
     changes.put(annotationRef, {
       data: annotationDict
     });
-    return {
+    const retRef = {
       ref: annotationRef
     };
+    if (annotation.popup) {
+      const popup = annotation.popup;
+      if (popup.deleted) {
+        annotationDict.delete("Popup");
+        annotationDict.delete("Contents");
+        annotationDict.delete("RC");
+        return retRef;
+      }
+      const popupRef = popup.ref ||= xref.getNewTemporaryRef();
+      popup.parent = annotationRef;
+      const popupDict = PopupAnnotation.createNewDict(popup, xref);
+      changes.put(popupRef, {
+        data: popupDict
+      });
+      annotationDict.setIfDefined("Contents", stringToAsciiOrUTF16BE(popup.contents));
+      annotationDict.set("Popup", popupRef);
+      return [retRef, {
+        ref: popupRef
+      }];
+    }
+    return retRef;
   }
   static async createNewPrintAnnotation(annotationGlobals, xref, annotation, params) {
     const ap = await this.createNewAppearanceStream(annotation, xref, params);
@@ -55958,12 +56778,8 @@ class WidgetAnnotation extends Annotation {
     if (rotation) {
       mk.set("R", rotation);
     }
-    if (this.borderColor) {
-      mk.set("BC", getPdfColorArray(this.borderColor));
-    }
-    if (this.backgroundColor) {
-      mk.set("BG", getPdfColorArray(this.backgroundColor));
-    }
+    mk.setIfArray("BC", getPdfColorArray(this.borderColor));
+    mk.setIfArray("BG", getPdfColorArray(this.backgroundColor));
     return mk.size > 0 ? mk : null;
   }
   amendSavedDict(annotationStorage, dict) {}
@@ -56058,7 +56874,7 @@ class WidgetAnnotation extends Annotation {
       const resources = this._getSaveFieldResources(xref);
       const appearanceStream = new StringStream(appearance);
       const appearanceDict = appearanceStream.dict = new Dict(xref);
-      appearanceDict.set("Subtype", Name.get("Form"));
+      appearanceDict.setIfName("Subtype", "Form");
       appearanceDict.set("Resources", resources);
       const bbox = rotation % 180 === 0 ? [0, 0, this.width, this.height] : [0, 0, this.height, this.width];
       appearanceDict.set("BBox", bbox);
@@ -56371,6 +57187,58 @@ class TextWidgetAnnotation extends WidgetAnnotation {
     this.data.multiLine = this.hasFieldFlag(AnnotationFieldFlag.MULTILINE);
     this.data.comb = this.hasFieldFlag(AnnotationFieldFlag.COMB) && !this.data.multiLine && !this.data.password && !this.hasFieldFlag(AnnotationFieldFlag.FILESELECT) && this.data.maxLen !== 0;
     this.data.doNotScroll = this.hasFieldFlag(AnnotationFieldFlag.DONOTSCROLL);
+    const {
+      data: {
+        actions
+      }
+    } = this;
+    if (!actions) {
+      return;
+    }
+    const AFDateTime = /^AF(Date|Time)_(?:Keystroke|Format)(?:Ex)?\(['"]?([^'"]+)['"]?\);$/;
+    let canUseHTMLDateTime = false;
+    if (actions.Format?.length === 1 && actions.Keystroke?.length === 1 && AFDateTime.test(actions.Format[0]) && AFDateTime.test(actions.Keystroke[0]) || actions.Format?.length === 0 && actions.Keystroke?.length === 1 && AFDateTime.test(actions.Keystroke[0]) || actions.Keystroke?.length === 0 && actions.Format?.length === 1 && AFDateTime.test(actions.Format[0])) {
+      canUseHTMLDateTime = true;
+    }
+    const actionsToVisit = [];
+    if (actions.Format) {
+      actionsToVisit.push(...actions.Format);
+    }
+    if (actions.Keystroke) {
+      actionsToVisit.push(...actions.Keystroke);
+    }
+    if (canUseHTMLDateTime) {
+      delete actions.Keystroke;
+      actions.Format = actionsToVisit;
+    }
+    for (const formatAction of actionsToVisit) {
+      const m = formatAction.match(AFDateTime);
+      if (!m) {
+        continue;
+      }
+      const isDate = m[1] === "Date";
+      let format = m[2];
+      const num = parseInt(format, 10);
+      if (!isNaN(num) && Math.floor(Math.log10(num)) + 1 === m[2].length) {
+        format = (isDate ? DateFormats : TimeFormats)[num] ?? format;
+      }
+      this.data.datetimeFormat = format;
+      if (!canUseHTMLDateTime) {
+        break;
+      }
+      if (isDate) {
+        if (/HH|MM|ss|h/.test(format)) {
+          this.data.datetimeType = "datetime-local";
+          this.data.timeStep = /ss/.test(format) ? 1 : 60;
+        } else {
+          this.data.datetimeType = "date";
+        }
+        break;
+      }
+      this.data.datetimeType = "time";
+      this.data.timeStep = /ss/.test(format) ? 1 : 60;
+      break;
+    }
   }
   get hasTextContent() {
     return !!this.appearance && !this._needAppearances;
@@ -56490,6 +57358,8 @@ class TextWidgetAnnotation extends WidgetAnnotation {
       strokeColor: this.data.borderColor,
       fillColor: this.data.backgroundColor,
       rotation: this.rotation,
+      datetimeFormat: this.data.datetimeFormat,
+      hasDatetimeHTML: !!this.data.datetimeType,
       type: "text"
     };
   }
@@ -56691,8 +57561,8 @@ class ButtonWidgetAnnotation extends WidgetAnnotation {
     const appearance = `q BT /PdfJsZaDb ${fontSize} Tf 0 g ${xShift} ${yShift} Td (${char}) Tj ET Q`;
     const appearanceStreamDict = new Dict(params.xref);
     appearanceStreamDict.set("FormType", 1);
-    appearanceStreamDict.set("Subtype", Name.get("Form"));
-    appearanceStreamDict.set("Type", Name.get("XObject"));
+    appearanceStreamDict.setIfName("Subtype", "Form");
+    appearanceStreamDict.setIfName("Type", "XObject");
     appearanceStreamDict.set("BBox", bbox);
     appearanceStreamDict.set("Matrix", [1, 0, 0, 1, 0, 0]);
     appearanceStreamDict.set("Length", appearance.length);
@@ -56844,10 +57714,10 @@ class ButtonWidgetAnnotation extends WidgetAnnotation {
   }
   get fallbackFontDict() {
     const dict = new Dict();
-    dict.set("BaseFont", Name.get("ZapfDingbats"));
-    dict.set("Type", Name.get("FallbackType"));
-    dict.set("Subtype", Name.get("FallbackType"));
-    dict.set("Encoding", Name.get("ZapfDingbatsEncoding"));
+    dict.setIfName("BaseFont", "ZapfDingbats");
+    dict.setIfName("Type", "FallbackType");
+    dict.setIfName("Subtype", "FallbackType");
+    dict.setIfName("Encoding", "ZapfDingbatsEncoding");
     return shadow(this, "fallbackFontDict", dict);
   }
 }
@@ -57105,6 +57975,9 @@ class LinkAnnotation extends Annotation {
       docAttachments: annotationGlobals.attachments
     });
   }
+  get overlaysTextContent() {
+    return true;
+  }
 }
 class PopupAnnotation extends Annotation {
   constructor(params) {
@@ -57123,6 +57996,7 @@ class PopupAnnotation extends Annotation {
       return;
     }
     this.data.parentRect = lookupNormalRect(parentItem.getArray("Rect"), null);
+    this.data.creationDate = parentItem.get("CreationDate") || "";
     const rt = parentItem.get("RT");
     if (isName(rt, AnnotationReplyType.GROUP)) {
       parentItem = parentItem.get("IRT");
@@ -57153,6 +58027,23 @@ class PopupAnnotation extends Annotation {
       this.data.richText = XFAFactory.getRichTextAsHtml(parentItem.get("RC"));
     }
     this.data.open = !!dict.get("Open");
+  }
+  static createNewDict(annotation, xref, _params) {
+    const {
+      oldAnnotation,
+      rect,
+      parent
+    } = annotation;
+    const popup = oldAnnotation || new Dict(xref);
+    popup.setIfNotExists("Type", Name.get("Annot"));
+    popup.setIfNotExists("Subtype", Name.get("Popup"));
+    popup.setIfNotExists("Open", false);
+    popup.setIfArray("Rect", rect);
+    popup.set("Parent", parent);
+    return popup;
+  }
+  static async createNewAppearanceStream(annotation, xref, params) {
+    return null;
   }
 }
 class FreeTextAnnotation extends MarkupAnnotation {
@@ -57210,6 +58101,7 @@ class FreeTextAnnotation extends MarkupAnnotation {
   }) {
     const {
       color,
+      date,
       fontSize,
       oldAnnotation,
       rect,
@@ -57218,32 +58110,24 @@ class FreeTextAnnotation extends MarkupAnnotation {
       value
     } = annotation;
     const freetext = oldAnnotation || new Dict(xref);
-    freetext.set("Type", Name.get("Annot"));
-    freetext.set("Subtype", Name.get("FreeText"));
+    freetext.setIfNotExists("Type", Name.get("Annot"));
+    freetext.setIfNotExists("Subtype", Name.get("FreeText"));
+    freetext.set(oldAnnotation ? "M" : "CreationDate", `D:${getModificationDate(date)}`);
     if (oldAnnotation) {
-      freetext.set("M", `D:${getModificationDate()}`);
       freetext.delete("RC");
-    } else {
-      freetext.set("CreationDate", `D:${getModificationDate()}`);
     }
-    freetext.set("Rect", rect);
+    freetext.setIfArray("Rect", rect);
     const da = `/Helv ${fontSize} Tf ${getPdfColor(color, true)}`;
     freetext.set("DA", da);
-    freetext.set("Contents", stringToAsciiOrUTF16BE(value));
-    freetext.set("F", 4);
-    freetext.set("Border", [0, 0, 0]);
-    freetext.set("Rotate", rotation);
-    if (user) {
-      freetext.set("T", stringToAsciiOrUTF16BE(user));
-    }
+    freetext.setIfDefined("Contents", stringToAsciiOrUTF16BE(value));
+    freetext.setIfNotExists("F", 4);
+    freetext.setIfNotExists("Border", [0, 0, 0]);
+    freetext.setIfNumber("Rotate", rotation);
+    freetext.setIfDefined("T", stringToAsciiOrUTF16BE(user));
     if (apRef || ap) {
       const n = new Dict(xref);
       freetext.set("AP", n);
-      if (apRef) {
-        n.set("N", apRef);
-      } else {
-        n.set("N", ap);
-      }
+      n.set("N", apRef || ap);
     }
     return freetext;
   }
@@ -57260,16 +58144,19 @@ class FreeTextAnnotation extends MarkupAnnotation {
       rotation,
       value
     } = annotation;
+    if (!color) {
+      return null;
+    }
     const resources = new Dict(xref);
     const font = new Dict(xref);
     if (baseFontRef) {
       font.set("Helv", baseFontRef);
     } else {
       const baseFont = new Dict(xref);
-      baseFont.set("BaseFont", Name.get("Helvetica"));
-      baseFont.set("Type", Name.get("Font"));
-      baseFont.set("Subtype", Name.get("Type1"));
-      baseFont.set("Encoding", Name.get("WinAnsiEncoding"));
+      baseFont.setIfName("BaseFont", "Helvetica");
+      baseFont.setIfName("Type", "Font");
+      baseFont.setIfName("Subtype", "Type1");
+      baseFont.setIfName("Encoding", "WinAnsiEncoding");
       font.set("Helv", baseFont);
     }
     resources.set("Font", font);
@@ -57348,8 +58235,8 @@ class FreeTextAnnotation extends MarkupAnnotation {
     const appearance = buffer.join("\n");
     const appearanceStreamDict = new Dict(xref);
     appearanceStreamDict.set("FormType", 1);
-    appearanceStreamDict.set("Subtype", Name.get("Form"));
-    appearanceStreamDict.set("Type", Name.get("XObject"));
+    appearanceStreamDict.setIfName("Subtype", "Form");
+    appearanceStreamDict.setIfName("Type", "XObject");
     appearanceStreamDict.set("BBox", rect);
     appearanceStreamDict.set("Resources", resources);
     appearanceStreamDict.set("Matrix", [1, 0, 0, 1, -rect[0], -rect[1]]);
@@ -57373,10 +58260,10 @@ class LineAnnotation extends MarkupAnnotation {
     this.setLineEndings(dict.getArray("LE"));
     this.data.lineEndings = this.lineEndings;
     if (!this.appearance) {
-      const strokeColor = this.color ? getPdfColorArray(this.color) : [0, 0, 0];
+      const strokeColor = getPdfColorArray(this.color, [0, 0, 0]);
       const strokeAlpha = dict.get("CA");
       const interiorColor = getRgbColor(dict.getArray("IC"), null);
-      const fillColor = interiorColor ? getPdfColorArray(interiorColor) : null;
+      const fillColor = getPdfColorArray(interiorColor);
       const fillAlpha = fillColor ? strokeAlpha : null;
       const borderWidth = this.borderStyle.width || 1,
         borderAdjust = 2 * borderWidth;
@@ -57410,10 +58297,10 @@ class SquareAnnotation extends MarkupAnnotation {
     this.data.hasOwnCanvas = this.data.noRotate;
     this.data.noHTML = false;
     if (!this.appearance) {
-      const strokeColor = this.color ? getPdfColorArray(this.color) : [0, 0, 0];
+      const strokeColor = getPdfColorArray(this.color, [0, 0, 0]);
       const strokeAlpha = dict.get("CA");
       const interiorColor = getRgbColor(dict.getArray("IC"), null);
-      const fillColor = interiorColor ? getPdfColorArray(interiorColor) : null;
+      const fillColor = getPdfColorArray(interiorColor);
       const fillAlpha = fillColor ? strokeAlpha : null;
       if (this.borderStyle.width === 0 && !fillColor) {
         return;
@@ -57451,10 +58338,10 @@ class CircleAnnotation extends MarkupAnnotation {
     } = params;
     this.data.annotationType = AnnotationType.CIRCLE;
     if (!this.appearance) {
-      const strokeColor = this.color ? getPdfColorArray(this.color) : [0, 0, 0];
+      const strokeColor = getPdfColorArray(this.color, [0, 0, 0]);
       const strokeAlpha = dict.get("CA");
       const interiorColor = getRgbColor(dict.getArray("IC"), null);
-      const fillColor = interiorColor ? getPdfColorArray(interiorColor) : null;
+      const fillColor = getPdfColorArray(interiorColor);
       const fillAlpha = fillColor ? strokeAlpha : null;
       if (this.borderStyle.width === 0 && !fillColor) {
         return;
@@ -57509,8 +58396,22 @@ class PolylineAnnotation extends MarkupAnnotation {
     }
     const vertices = this.data.vertices = Float32Array.from(rawVertices);
     if (!this.appearance) {
-      const strokeColor = this.color ? getPdfColorArray(this.color) : [0, 0, 0];
+      const strokeColor = getPdfColorArray(this.color, [0, 0, 0]);
       const strokeAlpha = dict.get("CA");
+      let fillColor = getRgbColor(dict.getArray("IC"), null);
+      if (fillColor) {
+        fillColor = getPdfColorArray(fillColor);
+      }
+      let operator;
+      if (fillColor) {
+        if (this.color) {
+          operator = fillColor.every((c, i) => c === strokeColor[i]) ? "f" : "B";
+        } else {
+          operator = "f";
+        }
+      } else {
+        operator = "S";
+      }
       const borderWidth = this.borderStyle.width || 1,
         borderAdjust = 2 * borderWidth;
       const bbox = [Infinity, Infinity, -Infinity, -Infinity];
@@ -57525,11 +58426,13 @@ class PolylineAnnotation extends MarkupAnnotation {
         extra: `${borderWidth} w`,
         strokeColor,
         strokeAlpha,
+        fillColor,
+        fillAlpha: fillColor ? strokeAlpha : null,
         pointsCallback: (buffer, points) => {
           for (let i = 0, ii = vertices.length; i < ii; i += 2) {
             buffer.push(`${vertices[i]} ${vertices[i + 1]} ${i === 0 ? "m" : "l"}`);
           }
-          buffer.push("S");
+          buffer.push(operator);
           return [points[0], points[7], points[2], points[3]];
         }
       });
@@ -57582,7 +58485,7 @@ class InkAnnotation extends MarkupAnnotation {
       }
     }
     if (!this.appearance) {
-      const strokeColor = this.color ? getPdfColorArray(this.color) : [0, 0, 0];
+      const strokeColor = getPdfColorArray(this.color, [0, 0, 0]);
       const strokeAlpha = dict.get("CA");
       const borderWidth = this.borderStyle.width || 1,
         borderAdjust = 2 * borderWidth;
@@ -57619,6 +58522,7 @@ class InkAnnotation extends MarkupAnnotation {
     const {
       oldAnnotation,
       color,
+      date,
       opacity,
       paths,
       outlines,
@@ -57628,30 +58532,28 @@ class InkAnnotation extends MarkupAnnotation {
       user
     } = annotation;
     const ink = oldAnnotation || new Dict(xref);
-    ink.set("Type", Name.get("Annot"));
-    ink.set("Subtype", Name.get("Ink"));
-    ink.set(oldAnnotation ? "M" : "CreationDate", `D:${getModificationDate()}`);
-    ink.set("Rect", rect);
-    ink.set("InkList", outlines?.points || paths.points);
-    ink.set("F", 4);
-    ink.set("Rotate", rotation);
-    if (user) {
-      ink.set("T", stringToAsciiOrUTF16BE(user));
-    }
+    ink.setIfNotExists("Type", Name.get("Annot"));
+    ink.setIfNotExists("Subtype", Name.get("Ink"));
+    ink.set(oldAnnotation ? "M" : "CreationDate", `D:${getModificationDate(date)}`);
+    ink.setIfArray("Rect", rect);
+    ink.setIfArray("InkList", outlines?.points || paths?.points);
+    ink.setIfNotExists("F", 4);
+    ink.setIfNumber("Rotate", rotation);
+    ink.setIfDefined("T", stringToAsciiOrUTF16BE(user));
     if (outlines) {
-      ink.set("IT", Name.get("InkHighlight"));
+      ink.setIfName("IT", "InkHighlight");
     }
-    const bs = new Dict(xref);
-    ink.set("BS", bs);
-    bs.set("W", thickness);
-    ink.set("C", getPdfColorArray(color));
-    ink.set("CA", opacity);
-    const n = new Dict(xref);
-    ink.set("AP", n);
-    if (apRef) {
-      n.set("N", apRef);
-    } else {
-      n.set("N", ap);
+    if (thickness > 0) {
+      const bs = new Dict(xref);
+      ink.set("BS", bs);
+      bs.set("W", thickness);
+    }
+    ink.setIfArray("C", getPdfColorArray(color));
+    ink.setIfNumber("CA", opacity);
+    if (ap || apRef) {
+      const n = new Dict(xref);
+      ink.set("AP", n);
+      n.set("N", apRef || ap);
     }
     return ink;
   }
@@ -57666,6 +58568,9 @@ class InkAnnotation extends MarkupAnnotation {
       thickness,
       opacity
     } = annotation;
+    if (!color) {
+      return null;
+    }
     const appearanceBuffer = [`${thickness} w 1 J 1 j`, `${getPdfColor(color, false)}`];
     if (opacity !== 1) {
       appearanceBuffer.push("/R0 gs");
@@ -57688,8 +58593,8 @@ class InkAnnotation extends MarkupAnnotation {
     const appearance = appearanceBuffer.join("\n");
     const appearanceStreamDict = new Dict(xref);
     appearanceStreamDict.set("FormType", 1);
-    appearanceStreamDict.set("Subtype", Name.get("Form"));
-    appearanceStreamDict.set("Type", Name.get("XObject"));
+    appearanceStreamDict.setIfName("Subtype", "Form");
+    appearanceStreamDict.setIfName("Type", "XObject");
     appearanceStreamDict.set("BBox", rect);
     appearanceStreamDict.set("Length", appearance.length);
     if (opacity !== 1) {
@@ -57697,7 +58602,7 @@ class InkAnnotation extends MarkupAnnotation {
       const extGState = new Dict(xref);
       const r0 = new Dict(xref);
       r0.set("CA", opacity);
-      r0.set("Type", Name.get("ExtGState"));
+      r0.setIfName("Type", "ExtGState");
       extGState.set("R0", r0);
       resources.set("ExtGState", extGState);
       appearanceStreamDict.set("Resources", resources);
@@ -57715,6 +58620,9 @@ class InkAnnotation extends MarkupAnnotation {
       },
       opacity
     } = annotation;
+    if (!color) {
+      return null;
+    }
     const appearanceBuffer = [`${getPdfColor(color, true)}`, "/R0 gs"];
     appearanceBuffer.push(`${numberToString(outline[4])} ${numberToString(outline[5])} m`);
     for (let i = 6, ii = outline.length; i < ii; i += 6) {
@@ -57729,8 +58637,8 @@ class InkAnnotation extends MarkupAnnotation {
     const appearance = appearanceBuffer.join("\n");
     const appearanceStreamDict = new Dict(xref);
     appearanceStreamDict.set("FormType", 1);
-    appearanceStreamDict.set("Subtype", Name.get("Form"));
-    appearanceStreamDict.set("Type", Name.get("XObject"));
+    appearanceStreamDict.setIfName("Subtype", "Form");
+    appearanceStreamDict.setIfName("Type", "XObject");
     appearanceStreamDict.set("BBox", rect);
     appearanceStreamDict.set("Length", appearance.length);
     const resources = new Dict(xref);
@@ -57739,10 +58647,10 @@ class InkAnnotation extends MarkupAnnotation {
     appearanceStreamDict.set("Resources", resources);
     const r0 = new Dict(xref);
     extGState.set("R0", r0);
-    r0.set("BM", Name.get("Multiply"));
+    r0.setIfName("BM", "Multiply");
     if (opacity !== 1) {
       r0.set("ca", opacity);
-      r0.set("Type", Name.get("ExtGState"));
+      r0.setIfName("Type", "ExtGState");
     }
     const ap = new StringStream(appearance);
     ap.dict = appearanceStreamDict;
@@ -57767,7 +58675,7 @@ class HighlightAnnotation extends MarkupAnnotation {
         if (this.appearance) {
           warn("HighlightAnnotation - ignoring built-in appearance stream.");
         }
-        const fillColor = this.color ? getPdfColorArray(this.color) : [1, 1, 0];
+        const fillColor = getPdfColorArray(this.color, [1, 1, 0]);
         const fillAlpha = dict.get("CA");
         this._setDefaultAppearance({
           xref,
@@ -57784,12 +58692,16 @@ class HighlightAnnotation extends MarkupAnnotation {
       this.data.popupRef = null;
     }
   }
+  get overlaysTextContent() {
+    return true;
+  }
   static createNewDict(annotation, xref, {
     apRef,
     ap
   }) {
     const {
       color,
+      date,
       oldAnnotation,
       opacity,
       rect,
@@ -57798,20 +58710,17 @@ class HighlightAnnotation extends MarkupAnnotation {
       quadPoints
     } = annotation;
     const highlight = oldAnnotation || new Dict(xref);
-    highlight.set("Type", Name.get("Annot"));
-    highlight.set("Subtype", Name.get("Highlight"));
-    highlight.set(oldAnnotation ? "M" : "CreationDate", `D:${getModificationDate()}`);
-    highlight.set("CreationDate", `D:${getModificationDate()}`);
-    highlight.set("Rect", rect);
-    highlight.set("F", 4);
-    highlight.set("Border", [0, 0, 0]);
-    highlight.set("Rotate", rotation);
-    highlight.set("QuadPoints", quadPoints);
-    highlight.set("C", getPdfColorArray(color));
-    highlight.set("CA", opacity);
-    if (user) {
-      highlight.set("T", stringToAsciiOrUTF16BE(user));
-    }
+    highlight.setIfNotExists("Type", Name.get("Annot"));
+    highlight.setIfNotExists("Subtype", Name.get("Highlight"));
+    highlight.set(oldAnnotation ? "M" : "CreationDate", `D:${getModificationDate(date)}`);
+    highlight.setIfArray("Rect", rect);
+    highlight.setIfNotExists("F", 4);
+    highlight.setIfNotExists("Border", [0, 0, 0]);
+    highlight.setIfNumber("Rotate", rotation);
+    highlight.setIfArray("QuadPoints", quadPoints);
+    highlight.setIfArray("C", getPdfColorArray(color));
+    highlight.setIfNumber("CA", opacity);
+    highlight.setIfDefined("T", stringToAsciiOrUTF16BE(user));
     if (apRef || ap) {
       const n = new Dict(xref);
       highlight.set("AP", n);
@@ -57826,6 +58735,9 @@ class HighlightAnnotation extends MarkupAnnotation {
       outlines,
       opacity
     } = annotation;
+    if (!color) {
+      return null;
+    }
     const appearanceBuffer = [`${getPdfColor(color, true)}`, "/R0 gs"];
     const buffer = [];
     for (const outline of outlines) {
@@ -57841,8 +58753,8 @@ class HighlightAnnotation extends MarkupAnnotation {
     const appearance = appearanceBuffer.join("\n");
     const appearanceStreamDict = new Dict(xref);
     appearanceStreamDict.set("FormType", 1);
-    appearanceStreamDict.set("Subtype", Name.get("Form"));
-    appearanceStreamDict.set("Type", Name.get("XObject"));
+    appearanceStreamDict.setIfName("Subtype", "Form");
+    appearanceStreamDict.setIfName("Type", "XObject");
     appearanceStreamDict.set("BBox", rect);
     appearanceStreamDict.set("Length", appearance.length);
     const resources = new Dict(xref);
@@ -57851,10 +58763,10 @@ class HighlightAnnotation extends MarkupAnnotation {
     appearanceStreamDict.set("Resources", resources);
     const r0 = new Dict(xref);
     extGState.set("R0", r0);
-    r0.set("BM", Name.get("Multiply"));
+    r0.setIfName("BM", "Multiply");
     if (opacity !== 1) {
       r0.set("ca", opacity);
-      r0.set("Type", Name.get("ExtGState"));
+      r0.setIfName("Type", "ExtGState");
     }
     const ap = new StringStream(appearance);
     ap.dict = appearanceStreamDict;
@@ -57872,7 +58784,7 @@ class UnderlineAnnotation extends MarkupAnnotation {
     const quadPoints = this.data.quadPoints = getQuadPoints(dict, null);
     if (quadPoints) {
       if (!this.appearance) {
-        const strokeColor = this.color ? getPdfColorArray(this.color) : [0, 0, 0];
+        const strokeColor = getPdfColorArray(this.color, [0, 0, 0]);
         const strokeAlpha = dict.get("CA");
         this._setDefaultAppearance({
           xref,
@@ -57889,6 +58801,9 @@ class UnderlineAnnotation extends MarkupAnnotation {
       this.data.popupRef = null;
     }
   }
+  get overlaysTextContent() {
+    return true;
+  }
 }
 class SquigglyAnnotation extends MarkupAnnotation {
   constructor(params) {
@@ -57901,7 +58816,7 @@ class SquigglyAnnotation extends MarkupAnnotation {
     const quadPoints = this.data.quadPoints = getQuadPoints(dict, null);
     if (quadPoints) {
       if (!this.appearance) {
-        const strokeColor = this.color ? getPdfColorArray(this.color) : [0, 0, 0];
+        const strokeColor = getPdfColorArray(this.color, [0, 0, 0]);
         const strokeAlpha = dict.get("CA");
         this._setDefaultAppearance({
           xref,
@@ -57929,6 +58844,9 @@ class SquigglyAnnotation extends MarkupAnnotation {
       this.data.popupRef = null;
     }
   }
+  get overlaysTextContent() {
+    return true;
+  }
 }
 class StrikeOutAnnotation extends MarkupAnnotation {
   constructor(params) {
@@ -57941,7 +58859,7 @@ class StrikeOutAnnotation extends MarkupAnnotation {
     const quadPoints = this.data.quadPoints = getQuadPoints(dict, null);
     if (quadPoints) {
       if (!this.appearance) {
-        const strokeColor = this.color ? getPdfColorArray(this.color) : [0, 0, 0];
+        const strokeColor = getPdfColorArray(this.color, [0, 0, 0]);
         const strokeAlpha = dict.get("CA");
         this._setDefaultAppearance({
           xref,
@@ -57957,6 +58875,9 @@ class StrikeOutAnnotation extends MarkupAnnotation {
     } else {
       this.data.popupRef = null;
     }
+  }
+  get overlaysTextContent() {
+    return true;
   }
 }
 class StampAnnotation extends MarkupAnnotation {
@@ -58011,8 +58932,8 @@ class StampAnnotation extends MarkupAnnotation {
     image.set("Type", xobjectName);
     image.set("Subtype", imageName);
     image.set("BitsPerComponent", 8);
-    image.set("ColorSpace", Name.get("DeviceRGB"));
-    image.set("Filter", Name.get("DCTDecode"));
+    image.setIfName("ColorSpace", "DeviceRGB");
+    image.setIfName("Filter", "DCTDecode");
     image.set("BBox", [0, 0, width, height]);
     image.set("Width", width);
     image.set("Height", height);
@@ -58032,7 +58953,7 @@ class StampAnnotation extends MarkupAnnotation {
       smask.set("Type", xobjectName);
       smask.set("Subtype", imageName);
       smask.set("BitsPerComponent", 8);
-      smask.set("ColorSpace", Name.get("DeviceGray"));
+      smask.setIfName("ColorSpace", "DeviceGray");
       smask.set("Width", width);
       smask.set("Height", height);
       smaskStream = new Stream(alphaBuffer, 0, 0, smask);
@@ -58050,30 +58971,25 @@ class StampAnnotation extends MarkupAnnotation {
     ap
   }) {
     const {
+      date,
       oldAnnotation,
       rect,
       rotation,
       user
     } = annotation;
     const stamp = oldAnnotation || new Dict(xref);
-    stamp.set("Type", Name.get("Annot"));
-    stamp.set("Subtype", Name.get("Stamp"));
-    stamp.set(oldAnnotation ? "M" : "CreationDate", `D:${getModificationDate()}`);
-    stamp.set("Rect", rect);
-    stamp.set("F", 4);
-    stamp.set("Border", [0, 0, 0]);
-    stamp.set("Rotate", rotation);
-    if (user) {
-      stamp.set("T", stringToAsciiOrUTF16BE(user));
-    }
+    stamp.setIfNotExists("Type", Name.get("Annot"));
+    stamp.setIfNotExists("Subtype", Name.get("Stamp"));
+    stamp.set(oldAnnotation ? "M" : "CreationDate", `D:${getModificationDate(date)}`);
+    stamp.setIfArray("Rect", rect);
+    stamp.setIfNotExists("F", 4);
+    stamp.setIfNotExists("Border", [0, 0, 0]);
+    stamp.setIfNumber("Rotate", rotation);
+    stamp.setIfDefined("T", stringToAsciiOrUTF16BE(user));
     if (apRef || ap) {
       const n = new Dict(xref);
       stamp.set("AP", n);
-      if (apRef) {
-        n.set("N", apRef);
-      } else {
-        n.set("N", ap);
-      }
+      n.set("N", apRef || ap);
     }
     return stamp;
   }
@@ -58085,6 +59001,9 @@ class StampAnnotation extends MarkupAnnotation {
       lines,
       thickness
     } = annotation;
+    if (!color) {
+      return null;
+    }
     const appearanceBuffer = [`${thickness} w 1 J 1 j`, `${getPdfColor(color, areContours)}`];
     for (const line of lines) {
       appearanceBuffer.push(`${numberToString(line[4])} ${numberToString(line[5])} m`);
@@ -58104,8 +59023,8 @@ class StampAnnotation extends MarkupAnnotation {
     const appearance = appearanceBuffer.join("\n");
     const appearanceStreamDict = new Dict(xref);
     appearanceStreamDict.set("FormType", 1);
-    appearanceStreamDict.set("Subtype", Name.get("Form"));
-    appearanceStreamDict.set("Type", Name.get("XObject"));
+    appearanceStreamDict.setIfName("Subtype", "Form");
+    appearanceStreamDict.setIfName("Type", "XObject");
     appearanceStreamDict.set("BBox", rect);
     appearanceStreamDict.set("Length", appearance.length);
     const ap = new StringStream(appearance);
@@ -58134,8 +59053,8 @@ class StampAnnotation extends MarkupAnnotation {
     const appearance = `q ${width} 0 0 ${height} 0 0 cm /Im0 Do Q`;
     const appearanceStreamDict = new Dict(xref);
     appearanceStreamDict.set("FormType", 1);
-    appearanceStreamDict.set("Subtype", Name.get("Form"));
-    appearanceStreamDict.set("Type", Name.get("XObject"));
+    appearanceStreamDict.setIfName("Subtype", "Form");
+    appearanceStreamDict.setIfName("Type", "XObject");
     appearanceStreamDict.set("BBox", [0, 0, width, height]);
     appearanceStreamDict.set("Resources", resources);
     if (rotation) {
@@ -58167,6 +59086,7 @@ class FileAttachmentAnnotation extends MarkupAnnotation {
 }
 
 ;// ./src/core/calculate_md5.js
+
 
 
 
@@ -58309,7 +59229,151 @@ class DatasetReader {
   }
 }
 
+;// ./src/core/intersector.js
+
+
+
+
+
+
+
+
+class SingleIntersector {
+  #annotation;
+  #minX = Infinity;
+  #minY = Infinity;
+  #maxX = -Infinity;
+  #maxY = -Infinity;
+  #quadPoints = null;
+  #text = [];
+  #extraChars = [];
+  #lastIntersectingQuadIndex = -1;
+  #canTakeExtraChars = false;
+  constructor(annotation) {
+    this.#annotation = annotation;
+    const quadPoints = annotation.data.quadPoints;
+    if (!quadPoints) {
+      [this.#minX, this.#minY, this.#maxX, this.#maxY] = annotation.data.rect;
+      return;
+    }
+    for (let i = 0, ii = quadPoints.length; i < ii; i += 8) {
+      this.#minX = Math.min(this.#minX, quadPoints[i]);
+      this.#maxX = Math.max(this.#maxX, quadPoints[i + 2]);
+      this.#minY = Math.min(this.#minY, quadPoints[i + 5]);
+      this.#maxY = Math.max(this.#maxY, quadPoints[i + 1]);
+    }
+    if (quadPoints.length > 8) {
+      this.#quadPoints = quadPoints;
+    }
+  }
+  overlaps(other) {
+    return !(this.#minX >= other.#maxX || this.#maxX <= other.#minX || this.#minY >= other.#maxY || this.#maxY <= other.#minY);
+  }
+  #intersects(x, y) {
+    if (this.#minX >= x || this.#maxX <= x || this.#minY >= y || this.#maxY <= y) {
+      return false;
+    }
+    const quadPoints = this.#quadPoints;
+    if (!quadPoints) {
+      return true;
+    }
+    if (this.#lastIntersectingQuadIndex >= 0) {
+      const i = this.#lastIntersectingQuadIndex;
+      if (!(quadPoints[i] >= x || quadPoints[i + 2] <= x || quadPoints[i + 5] >= y || quadPoints[i + 1] <= y)) {
+        return true;
+      }
+      this.#lastIntersectingQuadIndex = -1;
+    }
+    for (let i = 0, ii = quadPoints.length; i < ii; i += 8) {
+      if (!(quadPoints[i] >= x || quadPoints[i + 2] <= x || quadPoints[i + 5] >= y || quadPoints[i + 1] <= y)) {
+        this.#lastIntersectingQuadIndex = i;
+        return true;
+      }
+    }
+    return false;
+  }
+  addGlyph(x, y, glyph) {
+    if (!this.#intersects(x, y)) {
+      this.disableExtraChars();
+      return false;
+    }
+    if (this.#extraChars.length > 0) {
+      this.#text.push(this.#extraChars.join(""));
+      this.#extraChars.length = 0;
+    }
+    this.#text.push(glyph);
+    this.#canTakeExtraChars = true;
+    return true;
+  }
+  addExtraChar(char) {
+    if (this.#canTakeExtraChars) {
+      this.#extraChars.push(char);
+    }
+  }
+  disableExtraChars() {
+    if (!this.#canTakeExtraChars) {
+      return;
+    }
+    this.#canTakeExtraChars = false;
+    this.#extraChars.length = 0;
+  }
+  setText() {
+    this.#annotation.data.overlaidText = this.#text.join("");
+  }
+}
+class Intersector {
+  #intersectors = new Map();
+  constructor(annotations) {
+    for (const annotation of annotations) {
+      if (!annotation.data.quadPoints && !annotation.data.rect) {
+        continue;
+      }
+      const intersector = new SingleIntersector(annotation);
+      for (const [otherIntersector, overlapping] of this.#intersectors) {
+        if (otherIntersector.overlaps(intersector)) {
+          if (!overlapping) {
+            this.#intersectors.set(otherIntersector, new Set([intersector]));
+          } else {
+            overlapping.add(intersector);
+          }
+        }
+      }
+      this.#intersectors.set(intersector, null);
+    }
+  }
+  addGlyph(transform, width, height, glyph) {
+    const x = transform[4] + width / 2;
+    const y = transform[5] + height / 2;
+    let overlappingIntersectors;
+    for (const [intersector, overlapping] of this.#intersectors) {
+      if (overlappingIntersectors) {
+        if (overlappingIntersectors.has(intersector)) {
+          intersector.addGlyph(x, y, glyph);
+        } else {
+          intersector.disableExtraChars();
+        }
+        continue;
+      }
+      if (!intersector.addGlyph(x, y, glyph)) {
+        continue;
+      }
+      overlappingIntersectors = overlapping;
+    }
+  }
+  addExtraChar(char) {
+    for (const intersector of this.#intersectors.keys()) {
+      intersector.addExtraChar(char);
+    }
+  }
+  setText() {
+    for (const intersector of this.#intersectors.keys()) {
+      intersector.setText();
+    }
+  }
+}
+
 ;// ./src/core/calculate_sha_other.js
+
 
 
 
@@ -58592,6 +59656,7 @@ function calculateSHA384(data, offset, length) {
 
 
 
+
 const calculate_sha256_PARAMS = {
   get k() {
     return shadow(this, "k", [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2]);
@@ -58727,6 +59792,8 @@ class DecryptStream extends DecodeStream {
 }
 
 ;// ./src/core/crypto.js
+
+
 
 
 
@@ -59538,6 +60605,7 @@ class CipherTransformFactory {
 
 
 
+
 class XRef {
   #firstXRefStmPos = null;
   constructor(stream, pdfManager) {
@@ -60223,6 +61291,10 @@ class XRef {
         throw new FormatError(`invalid object offset in the ObjStm stream: ${offset}`);
       }
       nums[i] = num;
+      const entry = this.getEntry(num);
+      if (entry?.offset === tableOffset && entry.gen !== i) {
+        entry.gen = i;
+      }
       offsets[i] = offset;
     }
     const start = (stream.start || 0) + first;
@@ -60277,6 +61349,8 @@ class XRef {
 }
 
 ;// ./src/core/document.js
+
+
 
 
 
@@ -60489,6 +61563,12 @@ class Page {
           }
           continue;
         }
+        if (annotation.popup?.deleted) {
+          const popupRef = Ref.fromString(annotation.popupRef);
+          if (popupRef) {
+            deletedAnnotations.put(popupRef, popupRef);
+          }
+        }
         existingAnnotations?.put(ref);
         annotation.ref = ref;
         promises.push(this.xref.fetchAsync(ref).then(obj => {
@@ -60694,7 +61774,8 @@ class Page {
     task,
     includeMarkedContent,
     disableNormalization,
-    sink
+    sink,
+    intersector = null
   }) {
     const contentStreamPromise = this.getContentStream();
     const resourcesPromise = this.loadResources(RESOURCES_KEYS_TEXT_CONTENT);
@@ -60710,7 +61791,8 @@ class Page {
       disableNormalization,
       sink,
       viewBox: this.view,
-      lang
+      lang,
+      intersector
     });
   }
   async getStructTree() {
@@ -60744,6 +61826,7 @@ class Page {
     const intentAny = !!(intent & RenderingIntentFlag.ANY),
       intentDisplay = !!(intent & RenderingIntentFlag.DISPLAY),
       intentPrint = !!(intent & RenderingIntentFlag.PRINT);
+    const highlightedAnnotations = [];
     for (const annotation of annotations) {
       const isVisible = intentAny || intentDisplay && annotation.viewable;
       if (isVisible || intentPrint && annotation.printable) {
@@ -60754,7 +61837,24 @@ class Page {
         textContentPromises.push(annotation.extractTextContent(partialEvaluator, task, [-Infinity, -Infinity, Infinity, Infinity]).catch(function (reason) {
           warn(`getAnnotationsData - ignoring textContent during "${task.name}" task: "${reason}".`);
         }));
+      } else if (annotation.overlaysTextContent && isVisible) {
+        highlightedAnnotations.push(annotation);
       }
+    }
+    if (highlightedAnnotations.length > 0) {
+      const intersector = new Intersector(highlightedAnnotations);
+      textContentPromises.push(this.extractTextContent({
+        handler,
+        task,
+        includeMarkedContent: false,
+        disableNormalization: false,
+        sink: null,
+        viewBox: this.view,
+        lang: null,
+        intersector
+      }).then(() => {
+        intersector.setText();
+      }));
     }
     await Promise.all(textContentPromises);
     return annotationsData;
@@ -60998,6 +62098,40 @@ class PDFDocument {
       const isInvisible = Array.isArray(rectangle) && rectangle.every(value => value === 0);
       return isSignature && isInvisible;
     });
+  }
+  #collectSignatureCertificates(fields, collectedSignatureCertificates, visited = new RefSet()) {
+    if (!Array.isArray(fields)) {
+      return;
+    }
+    for (let field of fields) {
+      if (field instanceof Ref) {
+        if (visited.has(field)) {
+          continue;
+        }
+        visited.put(field);
+      }
+      field = this.xref.fetchIfRef(field);
+      if (!(field instanceof Dict)) {
+        continue;
+      }
+      if (field.has("Kids")) {
+        this.#collectSignatureCertificates(field.get("Kids"), collectedSignatureCertificates, visited);
+        continue;
+      }
+      const isSignature = isName(field.get("FT"), "Sig");
+      if (!isSignature) {
+        continue;
+      }
+      const value = field.get("V");
+      if (!(value instanceof Dict)) {
+        continue;
+      }
+      const subFilter = value.get("SubFilter");
+      if (!(subFilter instanceof Name)) {
+        continue;
+      }
+      collectedSignatureCertificates.add(subFilter.name);
+    }
   }
   get _xfaStreams() {
     const {
@@ -62224,6 +63358,8 @@ class MessageHandler {
 
 
 
+
+
 async function writeObject(ref, obj, buffer, {
   encrypt = null
 }) {
@@ -62432,7 +63568,7 @@ function updateXFA({
   }
   const xfaDataStream = new StringStream(xfaData);
   xfaDataStream.dict = new Dict(xref);
-  xfaDataStream.dict.set("Type", Name.get("EmbeddedFile"));
+  xfaDataStream.dict.setIfName("Type", "EmbeddedFile");
   changes.put(xfaDatasetsRef, {
     data: xfaDataStream
   });
@@ -62528,7 +63664,7 @@ function getTrailerDict(xrefInfo, changes, useXrefStream) {
       data: ""
     });
     newXref.set("Size", refForXrefTable.num + 1);
-    newXref.set("Type", Name.get("XRef"));
+    newXref.setIfName("Type", "XRef");
   } else {
     newXref.set("Size", refForXrefTable.num);
   }
@@ -62762,6 +63898,7 @@ class PDFWorkerStreamRangeReader {
 
 
 
+
 class WorkerTask {
   constructor(name) {
     this.name = name;
@@ -62813,7 +63950,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.3.31";
+    const workerVersion = "5.4.54";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }

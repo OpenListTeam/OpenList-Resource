@@ -21,8 +21,8 @@
  */
 
 /**
- * pdfjsVersion = 5.3.31
- * pdfjsBuild = 47ad820d9
+ * pdfjsVersion = 5.4.54
+ * pdfjsBuild = 295fb3ec4
  */
 /******/ var __webpack_modules__ = ({
 
@@ -199,9 +199,15 @@ var getIteratorFlattenable = __webpack_require__(8646);
 var createIteratorProxy = __webpack_require__(9462);
 var iteratorClose = __webpack_require__(9539);
 var IS_PURE = __webpack_require__(6395);
+var iteratorHelperThrowsOnInvalidIterator = __webpack_require__(684);
 var iteratorHelperWithoutClosingOnEarlyError = __webpack_require__(4549);
 
-var flatMapWithoutClosingOnEarlyError = !IS_PURE && iteratorHelperWithoutClosingOnEarlyError('flatMap', TypeError);
+var FLAT_MAP_WITHOUT_THROWING_ON_INVALID_ITERATOR = !IS_PURE
+  && !iteratorHelperThrowsOnInvalidIterator('flatMap', function () { /* empty */ });
+var flatMapWithoutClosingOnEarlyError = !IS_PURE && !FLAT_MAP_WITHOUT_THROWING_ON_INVALID_ITERATOR
+  && iteratorHelperWithoutClosingOnEarlyError('flatMap', TypeError);
+
+var FORCED = IS_PURE || FLAT_MAP_WITHOUT_THROWING_ON_INVALID_ITERATOR || flatMapWithoutClosingOnEarlyError;
 
 var IteratorProxy = createIteratorProxy(function () {
   var iterator = this.iterator;
@@ -227,7 +233,7 @@ var IteratorProxy = createIteratorProxy(function () {
 
 // `Iterator.prototype.flatMap` method
 // https://tc39.es/ecma262/#sec-iterator.prototype.flatmap
-$({ target: 'Iterator', proto: true, real: true, forced: IS_PURE || flatMapWithoutClosingOnEarlyError }, {
+$({ target: 'Iterator', proto: true, real: true, forced: FORCED }, {
   flatMap: function flatMap(mapper) {
     anObject(this);
     try {
@@ -291,6 +297,25 @@ var $TypeError = TypeError;
 module.exports = function (it, Prototype) {
   if (isPrototypeOf(Prototype, it)) return it;
   throw new $TypeError('Incorrect invocation');
+};
+
+
+/***/ }),
+
+/***/ 684:
+/***/ ((module) => {
+
+
+// Should throw an error on invalid iterator
+// https://issues.chromium.org/issues/336839115
+module.exports = function (methodName, argument) {
+  // eslint-disable-next-line es/no-iterator -- required for testing
+  var method = typeof Iterator == 'function' && Iterator.prototype[methodName];
+  if (method) try {
+    method.call({ next: null }, argument).next();
+  } catch (error) {
+    return true;
+  }
 };
 
 
@@ -398,6 +423,20 @@ module.exports = function (exec) {
   } catch (error) {
     return { error: true, value: error };
   }
+};
+
+
+/***/ }),
+
+/***/ 1108:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var classof = __webpack_require__(6955);
+
+module.exports = function (it) {
+  var klass = classof(it);
+  return klass === 'BigInt64Array' || klass === 'BigUint64Array';
 };
 
 
@@ -537,6 +576,29 @@ module.exports = function (argument) {
 
 /***/ }),
 
+/***/ 1385:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var iteratorClose = __webpack_require__(9539);
+
+module.exports = function (iters, kind, value) {
+  for (var i = iters.length - 1; i >= 0; i--) {
+    if (iters[i] === undefined) continue;
+    try {
+      value = iteratorClose(iters[i].iterator, kind, value);
+    } catch (error) {
+      kind = 'throw';
+      value = error;
+    }
+  }
+  if (kind === 'throw') throw value;
+  return value;
+};
+
+
+/***/ }),
+
 /***/ 1548:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
@@ -571,14 +633,18 @@ var anUint8Array = __webpack_require__(4154);
 
 var Uint8Array = globalThis.Uint8Array;
 
-var INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS = !Uint8Array || !Uint8Array.prototype.setFromBase64 || !(function () {
+var INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS = !Uint8Array || !Uint8Array.prototype.setFromBase64 || !function () {
   var target = new Uint8Array([255, 255, 255, 255, 255]);
+  try {
+    target.setFromBase64('', null);
+    return;
+  } catch (error) { /* empty */ }
   try {
     target.setFromBase64('MjYyZg===');
   } catch (error) {
     return target[0] === 50 && target[1] === 54 && target[2] === 50 && target[3] === 255 && target[4] === 255;
   }
-})();
+}();
 
 // `Uint8Array.prototype.setFromBase64` method
 // https://github.com/tc39/proposal-arraybuffer-base64
@@ -652,11 +718,14 @@ $({ target: 'Promise', stat: true, forced: FORCED }, {
 
 var $ = __webpack_require__(6518);
 var union = __webpack_require__(4204);
+var setMethodGetKeysBeforeCloning = __webpack_require__(9835);
 var setMethodAcceptSetLike = __webpack_require__(4916);
+
+var FORCED = !setMethodAcceptSetLike('union') || !setMethodGetKeysBeforeCloning('union');
 
 // `Set.prototype.union` method
 // https://tc39.es/ecma262/#sec-set.prototype.union
-$({ target: 'Set', proto: true, real: true, forced: !setMethodAcceptSetLike('union') }, {
+$({ target: 'Set', proto: true, real: true, forced: FORCED }, {
   union: union
 });
 
@@ -675,10 +744,15 @@ var getIteratorDirect = __webpack_require__(1767);
 var createIteratorProxy = __webpack_require__(9462);
 var callWithSafeIterationClosing = __webpack_require__(6319);
 var iteratorClose = __webpack_require__(9539);
+var iteratorHelperThrowsOnInvalidIterator = __webpack_require__(684);
 var iteratorHelperWithoutClosingOnEarlyError = __webpack_require__(4549);
 var IS_PURE = __webpack_require__(6395);
 
-var mapWithoutClosingOnEarlyError = !IS_PURE && iteratorHelperWithoutClosingOnEarlyError('map', TypeError);
+var MAP_WITHOUT_THROWING_ON_INVALID_ITERATOR = !IS_PURE && !iteratorHelperThrowsOnInvalidIterator('map', function () { /* empty */ });
+var mapWithoutClosingOnEarlyError = !IS_PURE && !MAP_WITHOUT_THROWING_ON_INVALID_ITERATOR
+  && iteratorHelperWithoutClosingOnEarlyError('map', TypeError);
+
+var FORCED = IS_PURE || MAP_WITHOUT_THROWING_ON_INVALID_ITERATOR || mapWithoutClosingOnEarlyError;
 
 var IteratorProxy = createIteratorProxy(function () {
   var iterator = this.iterator;
@@ -689,7 +763,7 @@ var IteratorProxy = createIteratorProxy(function () {
 
 // `Iterator.prototype.map` method
 // https://tc39.es/ecma262/#sec-iterator.prototype.map
-$({ target: 'Iterator', proto: true, real: true, forced: IS_PURE || mapWithoutClosingOnEarlyError }, {
+$({ target: 'Iterator', proto: true, real: true, forced: FORCED }, {
   map: function map(mapper) {
     anObject(this);
     try {
@@ -714,7 +788,7 @@ $({ target: 'Iterator', proto: true, real: true, forced: IS_PURE || mapWithoutCl
 
 
 // `GetIteratorDirect(obj)` abstract operation
-// https://tc39.es/proposal-iterator-helpers/#sec-getiteratordirect
+// https://tc39.es/ecma262/#sec-getiteratordirect
 module.exports = function (obj) {
   return {
     iterator: obj,
@@ -977,9 +1051,14 @@ var createIteratorProxy = __webpack_require__(9462);
 var callWithSafeIterationClosing = __webpack_require__(6319);
 var IS_PURE = __webpack_require__(6395);
 var iteratorClose = __webpack_require__(9539);
+var iteratorHelperThrowsOnInvalidIterator = __webpack_require__(684);
 var iteratorHelperWithoutClosingOnEarlyError = __webpack_require__(4549);
 
-var filterWithoutClosingOnEarlyError = !IS_PURE && iteratorHelperWithoutClosingOnEarlyError('filter', TypeError);
+var FILTER_WITHOUT_THROWING_ON_INVALID_ITERATOR = !IS_PURE && !iteratorHelperThrowsOnInvalidIterator('filter', function () { /* empty */ });
+var filterWithoutClosingOnEarlyError = !IS_PURE && !FILTER_WITHOUT_THROWING_ON_INVALID_ITERATOR
+  && iteratorHelperWithoutClosingOnEarlyError('filter', TypeError);
+
+var FORCED = IS_PURE || FILTER_WITHOUT_THROWING_ON_INVALID_ITERATOR || filterWithoutClosingOnEarlyError;
 
 var IteratorProxy = createIteratorProxy(function () {
   var iterator = this.iterator;
@@ -997,7 +1076,7 @@ var IteratorProxy = createIteratorProxy(function () {
 
 // `Iterator.prototype.filter` method
 // https://tc39.es/ecma262/#sec-iterator.prototype.filter
-$({ target: 'Iterator', proto: true, real: true, forced: IS_PURE || filterWithoutClosingOnEarlyError }, {
+$({ target: 'Iterator', proto: true, real: true, forced: FORCED }, {
   filter: function filter(predicate) {
     anObject(this);
     try {
@@ -1077,7 +1156,7 @@ module.exports = function (iterable, unboundFunction, options) {
   var iterator, iterFn, index, length, result, next, step;
 
   var stop = function (condition) {
-    if (iterator) iteratorClose(iterator, 'normal', condition);
+    if (iterator) iteratorClose(iterator, 'normal');
     return new Result(true, condition);
   };
 
@@ -1359,7 +1438,7 @@ var uncurryThis = __webpack_require__(9504);
 
 var id = 0;
 var postfix = Math.random();
-var toString = uncurryThis(1.0.toString);
+var toString = uncurryThis(1.1.toString);
 
 module.exports = function (key) {
   return 'Symbol(' + (key === undefined ? '' : key) + ')_' + toString(++id + postfix, 36);
@@ -1384,7 +1463,7 @@ var has = SetHelpers.has;
 var remove = SetHelpers.remove;
 
 // `Set.prototype.difference` method
-// https://github.com/tc39/proposal-set-methods
+// https://tc39.es/ecma262/#sec-set.prototype.difference
 module.exports = function difference(other) {
   var O = aSet(this);
   var otherRec = getSetRecord(other);
@@ -1393,7 +1472,7 @@ module.exports = function difference(other) {
     if (otherRec.includes(e)) remove(result, e);
   });
   else iterateSimple(otherRec.getIterator(), function (e) {
-    if (has(O, e)) remove(result, e);
+    if (has(result, e)) remove(result, e);
   });
   return result;
 };
@@ -1486,7 +1565,7 @@ var has = SetHelpers.has;
 var remove = SetHelpers.remove;
 
 // `Set.prototype.symmetricDifference` method
-// https://github.com/tc39/proposal-set-methods
+// https://tc39.es/ecma262/#sec-set.prototype.symmetricdifference
 module.exports = function symmetricDifference(other) {
   var O = aSet(this);
   var keysIter = getSetRecord(other).getIterator();
@@ -1605,7 +1684,7 @@ var iterate = __webpack_require__(8469);
 var getSetRecord = __webpack_require__(3789);
 
 // `Set.prototype.isSubsetOf` method
-// https://tc39.github.io/proposal-set-methods/#Set.prototype.isSubsetOf
+// https://tc39.es/ecma262/#sec-set.prototype.issubsetof
 module.exports = function isSubsetOf(other) {
   var O = aSet(this);
   var otherRec = getSetRecord(other);
@@ -1793,7 +1872,7 @@ var getSetRecord = __webpack_require__(3789);
 var iterateSimple = __webpack_require__(507);
 
 // `Set.prototype.union` method
-// https://github.com/tc39/proposal-set-methods
+// https://tc39.es/ecma262/#sec-set.prototype.union
 module.exports = function union(other) {
   var O = aSet(this);
   var keysIter = getSetRecord(other).getIterator();
@@ -1849,6 +1928,164 @@ module.exports = (function () {
   if (globalThis.window && globalThis.document) return 'BROWSER';
   return 'REST';
 })();
+
+
+/***/ }),
+
+/***/ 4235:
+/***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
+
+
+// based on Shewchuk's algorithm for exactly floating point addition
+// adapted from https://github.com/tc39/proposal-math-sum/blob/3513d58323a1ae25560e8700aa5294500c6c9287/polyfill/polyfill.mjs
+var $ = __webpack_require__(6518);
+var uncurryThis = __webpack_require__(9504);
+var iterate = __webpack_require__(2652);
+
+var $RangeError = RangeError;
+var $TypeError = TypeError;
+var $Infinity = Infinity;
+var $NaN = NaN;
+var abs = Math.abs;
+var pow = Math.pow;
+var push = uncurryThis([].push);
+
+var POW_2_1023 = pow(2, 1023);
+var MAX_SAFE_INTEGER = pow(2, 53) - 1; // 2 ** 53 - 1 === 9007199254740992
+var MAX_DOUBLE = Number.MAX_VALUE; // 2 ** 1024 - 2 ** (1023 - 52) === 1.79769313486231570815e+308
+var MAX_ULP = pow(2, 971); // 2 ** (1023 - 52) === 1.99584030953471981166e+292
+
+var NOT_A_NUMBER = {};
+var MINUS_INFINITY = {};
+var PLUS_INFINITY = {};
+var MINUS_ZERO = {};
+var FINITE = {};
+
+// prerequisite: abs(x) >= abs(y)
+var twosum = function (x, y) {
+  var hi = x + y;
+  var lo = y - (hi - x);
+  return { hi: hi, lo: lo };
+};
+
+// `Math.sumPrecise` method
+// https://github.com/tc39/proposal-math-sum
+$({ target: 'Math', stat: true }, {
+  // eslint-disable-next-line max-statements -- ok
+  sumPrecise: function sumPrecise(items) {
+    var numbers = [];
+    var count = 0;
+    var state = MINUS_ZERO;
+
+    iterate(items, function (n) {
+      if (++count >= MAX_SAFE_INTEGER) throw new $RangeError('Maximum allowed index exceeded');
+      if (typeof n != 'number') throw new $TypeError('Value is not a number');
+      if (state !== NOT_A_NUMBER) {
+        // eslint-disable-next-line no-self-compare -- NaN check
+        if (n !== n) state = NOT_A_NUMBER;
+        else if (n === $Infinity) state = state === MINUS_INFINITY ? NOT_A_NUMBER : PLUS_INFINITY;
+        else if (n === -$Infinity) state = state === PLUS_INFINITY ? NOT_A_NUMBER : MINUS_INFINITY;
+        else if ((n !== 0 || (1 / n) === $Infinity) && (state === MINUS_ZERO || state === FINITE)) {
+          state = FINITE;
+          push(numbers, n);
+        }
+      }
+    });
+
+    switch (state) {
+      case NOT_A_NUMBER: return $NaN;
+      case MINUS_INFINITY: return -$Infinity;
+      case PLUS_INFINITY: return $Infinity;
+      case MINUS_ZERO: return -0;
+    }
+
+    var partials = [];
+    var overflow = 0; // conceptually 2 ** 1024 times this value; the final partial is biased by this amount
+    var x, y, sum, hi, lo, tmp;
+
+    for (var i = 0; i < numbers.length; i++) {
+      x = numbers[i];
+      var actuallyUsedPartials = 0;
+      for (var j = 0; j < partials.length; j++) {
+        y = partials[j];
+        if (abs(x) < abs(y)) {
+          tmp = x;
+          x = y;
+          y = tmp;
+        }
+        sum = twosum(x, y);
+        hi = sum.hi;
+        lo = sum.lo;
+        if (abs(hi) === $Infinity) {
+          var sign = hi === $Infinity ? 1 : -1;
+          overflow += sign;
+
+          x = (x - (sign * POW_2_1023)) - (sign * POW_2_1023);
+          if (abs(x) < abs(y)) {
+            tmp = x;
+            x = y;
+            y = tmp;
+          }
+          sum = twosum(x, y);
+          hi = sum.hi;
+          lo = sum.lo;
+        }
+        if (lo !== 0) partials[actuallyUsedPartials++] = lo;
+        x = hi;
+      }
+      partials.length = actuallyUsedPartials;
+      if (x !== 0) push(partials, x);
+    }
+
+    // compute the exact sum of partials, stopping once we lose precision
+    var n = partials.length - 1;
+    hi = 0;
+    lo = 0;
+
+    if (overflow !== 0) {
+      var next = n >= 0 ? partials[n] : 0;
+      n--;
+      if (abs(overflow) > 1 || (overflow > 0 && next > 0) || (overflow < 0 && next < 0)) {
+        return overflow > 0 ? $Infinity : -$Infinity;
+      }
+      // here we actually have to do the arithmetic
+      // drop a factor of 2 so we can do it without overflow
+      // assert(abs(overflow) === 1)
+      sum = twosum(overflow * POW_2_1023, next / 2);
+      hi = sum.hi;
+      lo = sum.lo;
+      lo *= 2;
+      if (abs(2 * hi) === $Infinity) {
+        // rounding to the maximum value
+        if (hi > 0) {
+          return (hi === POW_2_1023 && lo === -(MAX_ULP / 2) && n >= 0 && partials[n] < 0) ? MAX_DOUBLE : $Infinity;
+        } return (hi === -POW_2_1023 && lo === (MAX_ULP / 2) && n >= 0 && partials[n] > 0) ? -MAX_DOUBLE : -$Infinity;
+      }
+
+      if (lo !== 0) {
+        partials[++n] = lo;
+        lo = 0;
+      }
+
+      hi *= 2;
+    }
+
+    while (n >= 0) {
+      sum = twosum(hi, partials[n--]);
+      hi = sum.hi;
+      lo = sum.lo;
+      if (lo !== 0) break;
+    }
+
+    if (n >= 0 && ((lo < 0 && partials[n] < 0) || (lo > 0 && partials[n] > 0))) {
+      y = lo * 2;
+      x = hi + y;
+      if (y === x - hi) hi = x;
+    }
+
+    return hi;
+  }
+});
 
 
 /***/ }),
@@ -1926,7 +2163,7 @@ var iterateSimple = __webpack_require__(507);
 var iteratorClose = __webpack_require__(9539);
 
 // `Set.prototype.isDisjointFrom` method
-// https://tc39.github.io/proposal-set-methods/#Set.prototype.isDisjointFrom
+// https://tc39.es/ecma262/#sec-set.prototype.isdisjointfrom
 module.exports = function isDisjointFrom(other) {
   var O = aSet(this);
   var otherRec = getSetRecord(other);
@@ -2174,6 +2411,206 @@ $({ target: 'Promise', stat: true }, {
     };
   }
 });
+
+
+/***/ }),
+
+/***/ 4644:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var NATIVE_ARRAY_BUFFER = __webpack_require__(7811);
+var DESCRIPTORS = __webpack_require__(3724);
+var globalThis = __webpack_require__(4576);
+var isCallable = __webpack_require__(4901);
+var isObject = __webpack_require__(34);
+var hasOwn = __webpack_require__(9297);
+var classof = __webpack_require__(6955);
+var tryToString = __webpack_require__(6823);
+var createNonEnumerableProperty = __webpack_require__(6699);
+var defineBuiltIn = __webpack_require__(6840);
+var defineBuiltInAccessor = __webpack_require__(2106);
+var isPrototypeOf = __webpack_require__(1625);
+var getPrototypeOf = __webpack_require__(2787);
+var setPrototypeOf = __webpack_require__(2967);
+var wellKnownSymbol = __webpack_require__(8227);
+var uid = __webpack_require__(3392);
+var InternalStateModule = __webpack_require__(1181);
+
+var enforceInternalState = InternalStateModule.enforce;
+var getInternalState = InternalStateModule.get;
+var Int8Array = globalThis.Int8Array;
+var Int8ArrayPrototype = Int8Array && Int8Array.prototype;
+var Uint8ClampedArray = globalThis.Uint8ClampedArray;
+var Uint8ClampedArrayPrototype = Uint8ClampedArray && Uint8ClampedArray.prototype;
+var TypedArray = Int8Array && getPrototypeOf(Int8Array);
+var TypedArrayPrototype = Int8ArrayPrototype && getPrototypeOf(Int8ArrayPrototype);
+var ObjectPrototype = Object.prototype;
+var TypeError = globalThis.TypeError;
+
+var TO_STRING_TAG = wellKnownSymbol('toStringTag');
+var TYPED_ARRAY_TAG = uid('TYPED_ARRAY_TAG');
+var TYPED_ARRAY_CONSTRUCTOR = 'TypedArrayConstructor';
+// Fixing native typed arrays in Opera Presto crashes the browser, see #595
+var NATIVE_ARRAY_BUFFER_VIEWS = NATIVE_ARRAY_BUFFER && !!setPrototypeOf && classof(globalThis.opera) !== 'Opera';
+var TYPED_ARRAY_TAG_REQUIRED = false;
+var NAME, Constructor, Prototype;
+
+var TypedArrayConstructorsList = {
+  Int8Array: 1,
+  Uint8Array: 1,
+  Uint8ClampedArray: 1,
+  Int16Array: 2,
+  Uint16Array: 2,
+  Int32Array: 4,
+  Uint32Array: 4,
+  Float32Array: 4,
+  Float64Array: 8
+};
+
+var BigIntArrayConstructorsList = {
+  BigInt64Array: 8,
+  BigUint64Array: 8
+};
+
+var isView = function isView(it) {
+  if (!isObject(it)) return false;
+  var klass = classof(it);
+  return klass === 'DataView'
+    || hasOwn(TypedArrayConstructorsList, klass)
+    || hasOwn(BigIntArrayConstructorsList, klass);
+};
+
+var getTypedArrayConstructor = function (it) {
+  var proto = getPrototypeOf(it);
+  if (!isObject(proto)) return;
+  var state = getInternalState(proto);
+  return (state && hasOwn(state, TYPED_ARRAY_CONSTRUCTOR)) ? state[TYPED_ARRAY_CONSTRUCTOR] : getTypedArrayConstructor(proto);
+};
+
+var isTypedArray = function (it) {
+  if (!isObject(it)) return false;
+  var klass = classof(it);
+  return hasOwn(TypedArrayConstructorsList, klass)
+    || hasOwn(BigIntArrayConstructorsList, klass);
+};
+
+var aTypedArray = function (it) {
+  if (isTypedArray(it)) return it;
+  throw new TypeError('Target is not a typed array');
+};
+
+var aTypedArrayConstructor = function (C) {
+  if (isCallable(C) && (!setPrototypeOf || isPrototypeOf(TypedArray, C))) return C;
+  throw new TypeError(tryToString(C) + ' is not a typed array constructor');
+};
+
+var exportTypedArrayMethod = function (KEY, property, forced, options) {
+  if (!DESCRIPTORS) return;
+  if (forced) for (var ARRAY in TypedArrayConstructorsList) {
+    var TypedArrayConstructor = globalThis[ARRAY];
+    if (TypedArrayConstructor && hasOwn(TypedArrayConstructor.prototype, KEY)) try {
+      delete TypedArrayConstructor.prototype[KEY];
+    } catch (error) {
+      // old WebKit bug - some methods are non-configurable
+      try {
+        TypedArrayConstructor.prototype[KEY] = property;
+      } catch (error2) { /* empty */ }
+    }
+  }
+  if (!TypedArrayPrototype[KEY] || forced) {
+    defineBuiltIn(TypedArrayPrototype, KEY, forced ? property
+      : NATIVE_ARRAY_BUFFER_VIEWS && Int8ArrayPrototype[KEY] || property, options);
+  }
+};
+
+var exportTypedArrayStaticMethod = function (KEY, property, forced) {
+  var ARRAY, TypedArrayConstructor;
+  if (!DESCRIPTORS) return;
+  if (setPrototypeOf) {
+    if (forced) for (ARRAY in TypedArrayConstructorsList) {
+      TypedArrayConstructor = globalThis[ARRAY];
+      if (TypedArrayConstructor && hasOwn(TypedArrayConstructor, KEY)) try {
+        delete TypedArrayConstructor[KEY];
+      } catch (error) { /* empty */ }
+    }
+    if (!TypedArray[KEY] || forced) {
+      // V8 ~ Chrome 49-50 `%TypedArray%` methods are non-writable non-configurable
+      try {
+        return defineBuiltIn(TypedArray, KEY, forced ? property : NATIVE_ARRAY_BUFFER_VIEWS && TypedArray[KEY] || property);
+      } catch (error) { /* empty */ }
+    } else return;
+  }
+  for (ARRAY in TypedArrayConstructorsList) {
+    TypedArrayConstructor = globalThis[ARRAY];
+    if (TypedArrayConstructor && (!TypedArrayConstructor[KEY] || forced)) {
+      defineBuiltIn(TypedArrayConstructor, KEY, property);
+    }
+  }
+};
+
+for (NAME in TypedArrayConstructorsList) {
+  Constructor = globalThis[NAME];
+  Prototype = Constructor && Constructor.prototype;
+  if (Prototype) enforceInternalState(Prototype)[TYPED_ARRAY_CONSTRUCTOR] = Constructor;
+  else NATIVE_ARRAY_BUFFER_VIEWS = false;
+}
+
+for (NAME in BigIntArrayConstructorsList) {
+  Constructor = globalThis[NAME];
+  Prototype = Constructor && Constructor.prototype;
+  if (Prototype) enforceInternalState(Prototype)[TYPED_ARRAY_CONSTRUCTOR] = Constructor;
+}
+
+// WebKit bug - typed arrays constructors prototype is Object.prototype
+if (!NATIVE_ARRAY_BUFFER_VIEWS || !isCallable(TypedArray) || TypedArray === Function.prototype) {
+  // eslint-disable-next-line no-shadow -- safe
+  TypedArray = function TypedArray() {
+    throw new TypeError('Incorrect invocation');
+  };
+  if (NATIVE_ARRAY_BUFFER_VIEWS) for (NAME in TypedArrayConstructorsList) {
+    if (globalThis[NAME]) setPrototypeOf(globalThis[NAME], TypedArray);
+  }
+}
+
+if (!NATIVE_ARRAY_BUFFER_VIEWS || !TypedArrayPrototype || TypedArrayPrototype === ObjectPrototype) {
+  TypedArrayPrototype = TypedArray.prototype;
+  if (NATIVE_ARRAY_BUFFER_VIEWS) for (NAME in TypedArrayConstructorsList) {
+    if (globalThis[NAME]) setPrototypeOf(globalThis[NAME].prototype, TypedArrayPrototype);
+  }
+}
+
+// WebKit bug - one more object in Uint8ClampedArray prototype chain
+if (NATIVE_ARRAY_BUFFER_VIEWS && getPrototypeOf(Uint8ClampedArrayPrototype) !== TypedArrayPrototype) {
+  setPrototypeOf(Uint8ClampedArrayPrototype, TypedArrayPrototype);
+}
+
+if (DESCRIPTORS && !hasOwn(TypedArrayPrototype, TO_STRING_TAG)) {
+  TYPED_ARRAY_TAG_REQUIRED = true;
+  defineBuiltInAccessor(TypedArrayPrototype, TO_STRING_TAG, {
+    configurable: true,
+    get: function () {
+      return isObject(this) ? this[TYPED_ARRAY_TAG] : undefined;
+    }
+  });
+  for (NAME in TypedArrayConstructorsList) if (globalThis[NAME]) {
+    createNonEnumerableProperty(globalThis[NAME], TYPED_ARRAY_TAG, NAME);
+  }
+}
+
+module.exports = {
+  NATIVE_ARRAY_BUFFER_VIEWS: NATIVE_ARRAY_BUFFER_VIEWS,
+  TYPED_ARRAY_TAG: TYPED_ARRAY_TAG_REQUIRED && TYPED_ARRAY_TAG,
+  aTypedArray: aTypedArray,
+  aTypedArrayConstructor: aTypedArrayConstructor,
+  exportTypedArrayMethod: exportTypedArrayMethod,
+  exportTypedArrayStaticMethod: exportTypedArrayStaticMethod,
+  getTypedArrayConstructor: getTypedArrayConstructor,
+  isView: isView,
+  isTypedArray: isTypedArray,
+  TypedArray: TypedArray,
+  TypedArrayPrototype: TypedArrayPrototype
+};
 
 
 /***/ }),
@@ -2447,11 +2884,14 @@ module.exports = {
 
 var $ = __webpack_require__(6518);
 var symmetricDifference = __webpack_require__(3650);
+var setMethodGetKeysBeforeCloning = __webpack_require__(9835);
 var setMethodAcceptSetLike = __webpack_require__(4916);
+
+var FORCED = !setMethodAcceptSetLike('symmetricDifference') || !setMethodGetKeysBeforeCloning('symmetricDifference');
 
 // `Set.prototype.symmetricDifference` method
 // https://tc39.es/ecma262/#sec-set.prototype.symmetricdifference
-$({ target: 'Set', proto: true, real: true, forced: !setMethodAcceptSetLike('symmetricDifference') }, {
+$({ target: 'Set', proto: true, real: true, forced: FORCED }, {
   symmetricDifference: symmetricDifference
 });
 
@@ -2572,11 +3012,22 @@ var uncurryThis = __webpack_require__(9504);
 var anUint8Array = __webpack_require__(4154);
 var notDetached = __webpack_require__(5169);
 
-var numberToString = uncurryThis(1.0.toString);
+var numberToString = uncurryThis(1.1.toString);
+
+var Uint8Array = globalThis.Uint8Array;
+
+var INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS = !Uint8Array || !Uint8Array.prototype.toHex || !(function () {
+  try {
+    var target = new Uint8Array([255, 255, 255, 255, 255, 255, 255, 255]);
+    return target.toHex() === 'ffffffffffffffff';
+  } catch (error) {
+    return false;
+  }
+})();
 
 // `Uint8Array.prototype.toHex` method
 // https://github.com/tc39/proposal-arraybuffer-base64
-if (globalThis.Uint8Array) $({ target: 'Uint8Array', proto: true }, {
+if (Uint8Array) $({ target: 'Uint8Array', proto: true, forced: INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS }, {
   toHex: function toHex() {
     anUint8Array(this);
     notDetached(this.buffer);
@@ -2683,6 +3134,26 @@ $({ target: 'URL', stat: true, forced: !USE_NATIVE_URL }, {
     }
   }
 });
+
+
+/***/ }),
+
+/***/ 5854:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var toPrimitive = __webpack_require__(2777);
+
+var $TypeError = TypeError;
+
+// `ToBigInt` abstract operation
+// https://tc39.es/ecma262/#sec-tobigint
+module.exports = function (argument) {
+  var prim = toPrimitive(argument, 'number');
+  if (typeof prim == 'number') throw new $TypeError("Can't convert number to bigint");
+  // eslint-disable-next-line es/no-bigint -- safe
+  return BigInt(prim);
+};
 
 
 /***/ }),
@@ -3389,10 +3860,10 @@ var SHARED = '__core-js_shared__';
 var store = module.exports = globalThis[SHARED] || defineGlobalProperty(SHARED, {});
 
 (store.versions || (store.versions = [])).push({
-  version: '3.42.0',
+  version: '3.44.0',
   mode: IS_PURE ? 'pure' : 'global',
   copyright: '© 2014-2025 Denis Pushkarev (zloirock.ru)',
-  license: 'https://github.com/zloirock/core-js/blob/v3.42.0/LICENSE',
+  license: 'https://github.com/zloirock/core-js/blob/v3.44.0/LICENSE',
   source: 'https://github.com/zloirock/core-js'
 });
 
@@ -3405,15 +3876,38 @@ var store = module.exports = globalThis[SHARED] || defineGlobalProperty(SHARED, 
 
 var $ = __webpack_require__(6518);
 var difference = __webpack_require__(3440);
+var fails = __webpack_require__(9039);
 var setMethodAcceptSetLike = __webpack_require__(4916);
 
-var INCORRECT = !setMethodAcceptSetLike('difference', function (result) {
+var SET_LIKE_INCORRECT_BEHAVIOR = !setMethodAcceptSetLike('difference', function (result) {
   return result.size === 0;
+});
+
+var FORCED = SET_LIKE_INCORRECT_BEHAVIOR || fails(function () {
+  // https://bugs.webkit.org/show_bug.cgi?id=288595
+  var setLike = {
+    size: 1,
+    has: function () { return true; },
+    keys: function () {
+      var index = 0;
+      return {
+        next: function () {
+          var done = index++ > 1;
+          if (baseSet.has(1)) baseSet.clear();
+          return { done: done, value: 2 };
+        }
+      };
+    }
+  };
+  // eslint-disable-next-line es/no-set -- testing
+  var baseSet = new Set([1, 2, 3, 4]);
+  // eslint-disable-next-line es/no-set-prototype-difference -- testing
+  return baseSet.difference(setLike).size !== 3;
 });
 
 // `Set.prototype.difference` method
 // https://tc39.es/ecma262/#sec-set.prototype.difference
-$({ target: 'Set', proto: true, real: true, forced: INCORRECT }, {
+$({ target: 'Set', proto: true, real: true, forced: FORCED }, {
   difference: difference
 });
 
@@ -3587,7 +4081,7 @@ var $ = __webpack_require__(6518);
 var $transfer = __webpack_require__(5636);
 
 // `ArrayBuffer.prototype.transferToFixedLength` method
-// https://tc39.es/proposal-arraybuffer-transfer/#sec-arraybuffer.prototype.transfertofixedlength
+// https://tc39.es/ecma262/#sec-arraybuffer.prototype.transfertofixedlength
 if ($transfer) $({ target: 'ArrayBuffer', proto: true }, {
   transferToFixedLength: function transferToFixedLength() {
     return $transfer(this, arguments.length ? arguments[0] : undefined, false);
@@ -3648,7 +4142,7 @@ var $ = __webpack_require__(6518);
 var $transfer = __webpack_require__(5636);
 
 // `ArrayBuffer.prototype.transfer` method
-// https://tc39.es/proposal-arraybuffer-transfer/#sec-arraybuffer.prototype.transfer
+// https://tc39.es/ecma262/#sec-arraybuffer.prototype.transfer
 if ($transfer) $({ target: 'ArrayBuffer', proto: true }, {
   transfer: function transfer() {
     return $transfer(this, arguments.length ? arguments[0] : undefined, true);
@@ -4188,7 +4682,7 @@ var iterateSimple = __webpack_require__(507);
 var iteratorClose = __webpack_require__(9539);
 
 // `Set.prototype.isSupersetOf` method
-// https://tc39.github.io/proposal-set-methods/#Set.prototype.isSupersetOf
+// https://tc39.es/ecma262/#sec-set.prototype.issupersetof
 module.exports = function isSupersetOf(other) {
   var O = aSet(this);
   var otherRec = getSetRecord(other);
@@ -4375,7 +4869,7 @@ var add = SetHelpers.add;
 var has = SetHelpers.has;
 
 // `Set.prototype.intersection` method
-// https://github.com/tc39/proposal-set-methods
+// https://tc39.es/ecma262/#sec-set.prototype.intersection
 module.exports = function intersection(other) {
   var O = aSet(this);
   var otherRec = getSetRecord(other);
@@ -4683,10 +5177,15 @@ var notANaN = __webpack_require__(4149);
 var toPositiveInteger = __webpack_require__(9590);
 var iteratorClose = __webpack_require__(9539);
 var createIteratorProxy = __webpack_require__(9462);
+var iteratorHelperThrowsOnInvalidIterator = __webpack_require__(684);
 var iteratorHelperWithoutClosingOnEarlyError = __webpack_require__(4549);
 var IS_PURE = __webpack_require__(6395);
 
-var dropWithoutClosingOnEarlyError = !IS_PURE && iteratorHelperWithoutClosingOnEarlyError('drop', RangeError);
+var DROP_WITHOUT_THROWING_ON_INVALID_ITERATOR = !IS_PURE && !iteratorHelperThrowsOnInvalidIterator('drop', 0);
+var dropWithoutClosingOnEarlyError = !IS_PURE && !DROP_WITHOUT_THROWING_ON_INVALID_ITERATOR
+  && iteratorHelperWithoutClosingOnEarlyError('drop', RangeError);
+
+var FORCED = IS_PURE || DROP_WITHOUT_THROWING_ON_INVALID_ITERATOR || dropWithoutClosingOnEarlyError;
 
 var IteratorProxy = createIteratorProxy(function () {
   var iterator = this.iterator;
@@ -4705,7 +5204,7 @@ var IteratorProxy = createIteratorProxy(function () {
 
 // `Iterator.prototype.drop` method
 // https://tc39.es/ecma262/#sec-iterator.prototype.drop
-$({ target: 'Iterator', proto: true, real: true, forced: IS_PURE || dropWithoutClosingOnEarlyError }, {
+$({ target: 'Iterator', proto: true, real: true, forced: FORCED }, {
   drop: function drop(limit) {
     anObject(this);
     var remaining;
@@ -4759,9 +5258,17 @@ var $fromBase64 = __webpack_require__(9143);
 
 var Uint8Array = globalThis.Uint8Array;
 
+var INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS = !Uint8Array || !Uint8Array.fromBase64 || !function () {
+  try {
+    Uint8Array.fromBase64('', null);
+  } catch (error) {
+    return true;
+  }
+}();
+
 // `Uint8Array.fromBase64` method
 // https://github.com/tc39/proposal-arraybuffer-base64
-if (Uint8Array) $({ target: 'Uint8Array', stat: true }, {
+if (Uint8Array) $({ target: 'Uint8Array', stat: true, forced: INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS }, {
   fromBase64: function fromBase64(string /* , options */) {
     var result = $fromBase64(string, arguments.length > 1 ? arguments[1] : undefined, null, 0x1FFFFFFFFFFFFF);
     return arrayFromConstructorAndList(Uint8Array, result.bytes);
@@ -4805,10 +5312,13 @@ var getMethod = __webpack_require__(5966);
 var IteratorPrototype = (__webpack_require__(7657).IteratorPrototype);
 var createIterResultObject = __webpack_require__(2529);
 var iteratorClose = __webpack_require__(9539);
+var iteratorCloseAll = __webpack_require__(1385);
 
 var TO_STRING_TAG = wellKnownSymbol('toStringTag');
 var ITERATOR_HELPER = 'IteratorHelper';
 var WRAP_FOR_VALID_ITERATOR = 'WrapForValidIterator';
+var NORMAL = 'normal';
+var THROW = 'throw';
 var setInternalState = InternalStateModule.set;
 
 var createIteratorProxyPrototype = function (IS_ITERATOR) {
@@ -4839,11 +5349,16 @@ var createIteratorProxyPrototype = function (IS_ITERATOR) {
         return returnMethod ? call(returnMethod, iterator) : createIterResultObject(undefined, true);
       }
       if (state.inner) try {
-        iteratorClose(state.inner.iterator, 'normal');
+        iteratorClose(state.inner.iterator, NORMAL);
       } catch (error) {
-        return iteratorClose(iterator, 'throw', error);
+        return iteratorClose(iterator, THROW, error);
       }
-      if (iterator) iteratorClose(iterator, 'normal');
+      if (state.openIters) try {
+        iteratorCloseAll(state.openIters, NORMAL);
+      } catch (error) {
+        return iteratorClose(iterator, THROW, error);
+      }
+      if (iterator) iteratorClose(iterator, NORMAL);
       return createIterResultObject(undefined, true);
     }
   });
@@ -4977,6 +5492,53 @@ module.exports = NATIVE_BIND ? call.bind(call) : function () {
 
 /***/ }),
 
+/***/ 9577:
+/***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var arrayWith = __webpack_require__(9928);
+var ArrayBufferViewCore = __webpack_require__(4644);
+var isBigIntArray = __webpack_require__(1108);
+var toIntegerOrInfinity = __webpack_require__(1291);
+var toBigInt = __webpack_require__(5854);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var getTypedArrayConstructor = ArrayBufferViewCore.getTypedArrayConstructor;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+var PROPER_ORDER = function () {
+  try {
+    // eslint-disable-next-line no-throw-literal, es/no-typed-arrays, es/no-array-prototype-with -- required for testing
+    new Int8Array(1)['with'](2, { valueOf: function () { throw 8; } });
+  } catch (error) {
+    // some early implementations, like WebKit, does not follow the final semantic
+    // https://github.com/tc39/proposal-change-array-by-copy/pull/86
+    return error === 8;
+  }
+}();
+
+// Bug in WebKit. It should truncate a negative fractional index to zero, but instead throws an error
+var THROW_ON_NEGATIVE_FRACTIONAL_INDEX = PROPER_ORDER && function () {
+  try {
+    // eslint-disable-next-line es/no-typed-arrays, es/no-array-prototype-with -- required for testing
+    new Int8Array(1)['with'](-0.5, 1);
+  } catch (error) {
+    return true;
+  }
+}();
+
+// `%TypedArray%.prototype.with` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.with
+exportTypedArrayMethod('with', { 'with': function (index, value) {
+  var O = aTypedArray(this);
+  var relativeIndex = toIntegerOrInfinity(index);
+  var actualValue = isBigIntArray(O) ? toBigInt(value) : +value;
+  return arrayWith(O, getTypedArrayConstructor(O), relativeIndex, actualValue);
+} }['with'], !PROPER_ORDER || THROW_ON_NEGATIVE_FRACTIONAL_INDEX);
+
+
+/***/ }),
+
 /***/ 9590:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
@@ -5053,9 +5615,20 @@ var base64UrlAlphabet = base64Map.i2cUrl;
 
 var charAt = uncurryThis(''.charAt);
 
+var Uint8Array = globalThis.Uint8Array;
+
+var INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS = !Uint8Array || !Uint8Array.prototype.toBase64 || !function () {
+  try {
+    var target = new Uint8Array();
+    target.toBase64(null);
+  } catch (error) {
+    return true;
+  }
+}();
+
 // `Uint8Array.prototype.toBase64` method
 // https://github.com/tc39/proposal-arraybuffer-base64
-if (globalThis.Uint8Array) $({ target: 'Uint8Array', proto: true }, {
+if (Uint8Array) $({ target: 'Uint8Array', proto: true, forced: INCORRECT_BEHAVIOR_OR_DOESNT_EXISTS }, {
   toBase64: function toBase64(/* options */) {
     var array = anUint8Array(this);
     var options = arguments.length ? anObjectOrUndefined(arguments[0]) : undefined;
@@ -5115,6 +5688,68 @@ if (globalThis.Uint8Array) $({ target: 'Uint8Array', proto: true }, {
 });
 
 
+/***/ }),
+
+/***/ 9835:
+/***/ ((module) => {
+
+
+// Should get iterator record of a set-like object before cloning this
+// https://bugs.webkit.org/show_bug.cgi?id=289430
+module.exports = function (METHOD_NAME) {
+  try {
+    // eslint-disable-next-line es/no-set -- needed for test
+    var baseSet = new Set();
+    var setLike = {
+      size: 0,
+      has: function () { return true; },
+      keys: function () {
+        // eslint-disable-next-line es/no-object-defineproperty -- needed for test
+        return Object.defineProperty({}, 'next', {
+          get: function () {
+            baseSet.clear();
+            baseSet.add(4);
+            return function () {
+              return { done: true };
+            };
+          }
+        });
+      }
+    };
+    var result = baseSet[METHOD_NAME](setLike);
+
+    return result.size === 1 && result.values().next().value === 4;
+  } catch (error) {
+    return false;
+  }
+};
+
+
+/***/ }),
+
+/***/ 9928:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+var lengthOfArrayLike = __webpack_require__(6198);
+var toIntegerOrInfinity = __webpack_require__(1291);
+
+var $RangeError = RangeError;
+
+// https://tc39.es/ecma262/#sec-array.prototype.with
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.with
+module.exports = function (O, C, index, value) {
+  var len = lengthOfArrayLike(O);
+  var relativeIndex = toIntegerOrInfinity(index);
+  var actualIndex = relativeIndex < 0 ? len + relativeIndex : relativeIndex;
+  if (actualIndex >= len || actualIndex < 0) throw new $RangeError('Incorrect index');
+  var A = new C(len);
+  var k = 0;
+  for (; k < len; k++) A[k] = k === actualIndex ? value : O[k];
+  return A;
+};
+
+
 /***/ })
 
 /******/ });
@@ -5160,6 +5795,10 @@ var es_iterator_constructor = __webpack_require__(8111);
 var es_iterator_reduce = __webpack_require__(8237);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.promise.try.js
 var es_promise_try = __webpack_require__(1689);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.with.js
+var es_typed_array_with = __webpack_require__(9577);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/esnext.math.sum-precise.js
+var esnext_math_sum_precise = __webpack_require__(4235);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/esnext.uint8-array.from-base64.js
 var esnext_uint8_array_from_base64 = __webpack_require__(9432);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/esnext.uint8-array.set-from-base64.js
@@ -5175,6 +5814,8 @@ var web_dom_exception_stack = __webpack_require__(4979);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/web.url.parse.js
 var web_url_parse = __webpack_require__(5781);
 ;// ./src/shared/util.js
+
+
 
 
 
@@ -5219,7 +5860,8 @@ const AnnotationEditorType = {
   HIGHLIGHT: 9,
   STAMP: 13,
   INK: 15,
-  SIGNATURE: 101
+  SIGNATURE: 101,
+  COMMENT: 102
 };
 const AnnotationEditorParamsType = {
   RESIZE: 1,
@@ -5231,10 +5873,9 @@ const AnnotationEditorParamsType = {
   INK_THICKNESS: 22,
   INK_OPACITY: 23,
   HIGHLIGHT_COLOR: 31,
-  HIGHLIGHT_DEFAULT_COLOR: 32,
-  HIGHLIGHT_THICKNESS: 33,
-  HIGHLIGHT_FREE: 34,
-  HIGHLIGHT_SHOW_ALL: 35,
+  HIGHLIGHT_THICKNESS: 32,
+  HIGHLIGHT_FREE: 33,
+  HIGHLIGHT_SHOW_ALL: 34,
   DRAW_STEP: 41
 };
 const PermissionFlag = {
@@ -5944,6 +6585,9 @@ function isArrayEqual(arr1, arr2) {
   return true;
 }
 function getModificationDate(date = new Date()) {
+  if (!(date instanceof Date)) {
+    date = new Date(date);
+  }
   const buffer = [date.getUTCFullYear().toString(), (date.getUTCMonth() + 1).toString().padStart(2, "0"), date.getUTCDate().toString().padStart(2, "0"), date.getUTCHours().toString().padStart(2, "0"), date.getUTCMinutes().toString().padStart(2, "0"), date.getUTCSeconds().toString().padStart(2, "0")];
   return buffer.join("");
 }
@@ -6094,6 +6738,9 @@ var es_iterator_some = __webpack_require__(3579);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/esnext.json.parse.js
 var esnext_json_parse = __webpack_require__(8335);
 ;// ./src/display/display_utils.js
+
+
+
 
 
 
@@ -6291,19 +6938,71 @@ function getPdfFilenameFromUrl(url, defaultFilename = "document.pdf") {
     warn('getPdfFilenameFromUrl: ignore "data:"-URL for performance reasons.');
     return defaultFilename;
   }
-  const reURI = /^(?:(?:[^:]+:)?\/\/[^/]+)?([^?#]*)(\?[^#]*)?(#.*)?$/;
-  const reFilename = /[^/?#=]+\.pdf\b(?!.*\.pdf\b)/i;
-  const splitURI = reURI.exec(url);
-  let suggestedFilename = reFilename.exec(splitURI[1]) || reFilename.exec(splitURI[2]) || reFilename.exec(splitURI[3]);
-  if (suggestedFilename) {
-    suggestedFilename = suggestedFilename[0];
-    if (suggestedFilename.includes("%")) {
+  const getURL = urlString => {
+    try {
+      return new URL(urlString);
+    } catch {
       try {
-        suggestedFilename = reFilename.exec(decodeURIComponent(suggestedFilename))[0];
-      } catch {}
+        return new URL(decodeURIComponent(urlString));
+      } catch {
+        try {
+          return new URL(urlString, "https://foo.bar");
+        } catch {
+          try {
+            return new URL(decodeURIComponent(urlString), "https://foo.bar");
+          } catch {
+            return null;
+          }
+        }
+      }
+    }
+  };
+  const newURL = getURL(url);
+  if (!newURL) {
+    return defaultFilename;
+  }
+  const decode = name => {
+    try {
+      let decoded = decodeURIComponent(name);
+      if (decoded.includes("/")) {
+        decoded = decoded.split("/").at(-1);
+        if (decoded.test(/^\.pdf$/i)) {
+          return decoded;
+        }
+        return name;
+      }
+      return decoded;
+    } catch {
+      return name;
+    }
+  };
+  const pdfRegex = /\.pdf$/i;
+  const filename = newURL.pathname.split("/").at(-1);
+  if (pdfRegex.test(filename)) {
+    return decode(filename);
+  }
+  if (newURL.searchParams.size > 0) {
+    const values = Array.from(newURL.searchParams.values()).reverse();
+    for (const value of values) {
+      if (pdfRegex.test(value)) {
+        return decode(value);
+      }
+    }
+    const keys = Array.from(newURL.searchParams.keys()).reverse();
+    for (const key of keys) {
+      if (pdfRegex.test(key)) {
+        return decode(key);
+      }
     }
   }
-  return suggestedFilename || defaultFilename;
+  if (newURL.hash) {
+    const reFilename = /[^/?#=]+\.pdf\b(?!.*\.pdf\b)/i;
+    const hashFilename = reFilename.exec(newURL.hash);
+    if (hashFilename) {
+      return decode(hashFilename[0]);
+    }
+  }
+  return defaultFilename;
 }
 class StatTimer {
   started = Object.create(null);
@@ -6360,6 +7059,9 @@ function deprecated(details) {
 class PDFDateString {
   static #regex;
   static toDateObject(input) {
+    if (input instanceof Date) {
+      return input;
+    }
     if (!input || typeof input !== "string") {
       return null;
     }
@@ -6539,6 +7241,7 @@ class EditorToolbar {
   #editor;
   #buttons = null;
   #altText = null;
+  #comment = null;
   #signatureDescriptionButton = null;
   static #l10nRemove = null;
   constructor(editor) {
@@ -6574,7 +7277,6 @@ class EditorToolbar {
       style.insetInlineEnd = `${100 * x}%`;
       style.top = `calc(${100 * position[1]}% + var(--editor-toolbar-vert-offset))`;
     }
-    this.#addDeleteButton();
     return editToolbar;
   }
   get div() {
@@ -6612,8 +7314,9 @@ class EditorToolbar {
   show() {
     this.#toolbar.classList.remove("hidden");
     this.#altText?.shown();
+    this.#comment?.shown();
   }
-  #addDeleteButton() {
+  addDeleteButton() {
     const {
       editorType,
       _uiManager
@@ -6638,19 +7341,54 @@ class EditorToolbar {
   async addAltText(altText) {
     const button = await altText.render();
     this.#addListenersToElement(button);
-    this.#buttons.prepend(button, this.#divider);
+    this.#buttons.append(button, this.#divider);
     this.#altText = altText;
   }
+  addComment(comment) {
+    if (this.#comment) {
+      return;
+    }
+    const button = comment.render();
+    if (!button) {
+      return;
+    }
+    this.#addListenersToElement(button);
+    this.#buttons.prepend(button, this.#divider);
+    this.#comment = comment;
+    comment.toolbar = this;
+  }
   addColorPicker(colorPicker) {
+    if (this.#colorPicker) {
+      return;
+    }
     this.#colorPicker = colorPicker;
     const button = colorPicker.renderButton();
     this.#addListenersToElement(button);
-    this.#buttons.prepend(button, this.#divider);
+    this.#buttons.append(button, this.#divider);
   }
   async addEditSignatureButton(signatureManager) {
     const button = this.#signatureDescriptionButton = await signatureManager.renderEditButton(this.#editor);
     this.#addListenersToElement(button);
-    this.#buttons.prepend(button, this.#divider);
+    this.#buttons.append(button, this.#divider);
+  }
+  async addButton(name, tool) {
+    switch (name) {
+      case "colorPicker":
+        this.addColorPicker(tool);
+        break;
+      case "altText":
+        await this.addAltText(tool);
+        break;
+      case "editSignature":
+        await this.addEditSignatureButton(tool);
+        break;
+      case "delete":
+        this.addDeleteButton();
+        break;
+      case "comment":
+        this.addComment(tool);
+        break;
+    }
   }
   updateEditSignatureButton(description) {
     if (this.#signatureDescriptionButton) {
@@ -6742,6 +7480,7 @@ class HighlightToolbar {
 }
 
 ;// ./src/display/editor/tools.js
+
 
 
 
@@ -7153,6 +7892,7 @@ class AnnotationEditorUIManager {
   #annotationStorage = null;
   #changedExistingAnnotations = null;
   #commandManager = new CommandManager();
+  #commentManager = null;
   #copyPasteAC = null;
   #currentDrawingSession = null;
   #currentPageIndex = 0;
@@ -7196,6 +7936,7 @@ class AnnotationEditorUIManager {
   #translationTimeoutId = null;
   #container = null;
   #viewer = null;
+  #viewerAlert = null;
   #updateModeCapability = null;
   static TRANSLATE_SMALL = 1;
   static TRANSLATE_BIG = 10;
@@ -7257,11 +7998,13 @@ class AnnotationEditorUIManager {
       checker: arrowChecker
     }]]));
   }
-  constructor(container, viewer, altTextManager, signatureManager, eventBus, pdfDocument, pageColors, highlightColors, enableHighlightFloatingButton, enableUpdatedAddImage, enableNewAltTextWhenAddingImage, mlManager, editorUndoBar, supportsPinchToZoom) {
+  constructor(container, viewer, viewerAlert, altTextManager, commentManager, signatureManager, eventBus, pdfDocument, pageColors, highlightColors, enableHighlightFloatingButton, enableUpdatedAddImage, enableNewAltTextWhenAddingImage, mlManager, editorUndoBar, supportsPinchToZoom) {
     const signal = this._signal = this.#abortController.signal;
     this.#container = container;
     this.#viewer = viewer;
+    this.#viewerAlert = viewerAlert;
     this.#altTextManager = altTextManager;
+    this.#commentManager = commentManager;
     this.#signatureManager = signatureManager;
     this._eventBus = eventBus;
     eventBus._on("editingaction", this.onEditingAction.bind(this), {
@@ -7318,6 +8061,7 @@ class AnnotationEditorUIManager {
     this.#selectedEditors.clear();
     this.#commandManager.destroy();
     this.#altTextManager?.destroy();
+    this.#commentManager?.destroy();
     this.#signatureManager?.destroy();
     this.#highlightToolbar?.hide();
     this.#highlightToolbar = null;
@@ -7351,11 +8095,46 @@ class AnnotationEditorUIManager {
   get direction() {
     return shadow(this, "direction", getComputedStyle(this.#container).direction);
   }
+  get _highlightColors() {
+    return shadow(this, "_highlightColors", this.#highlightColors ? new Map(this.#highlightColors.split(",").map(pair => {
+      pair = pair.split("=").map(x => x.trim());
+      pair[1] = pair[1].toUpperCase();
+      return pair;
+    })) : null);
+  }
   get highlightColors() {
-    return shadow(this, "highlightColors", this.#highlightColors ? new Map(this.#highlightColors.split(",").map(pair => pair.split("=").map(x => x.trim()))) : null);
+    const {
+      _highlightColors
+    } = this;
+    if (!_highlightColors) {
+      return shadow(this, "highlightColors", null);
+    }
+    const map = new Map();
+    const hasHCM = !!this.#pageColors;
+    for (const [name, color] of _highlightColors) {
+      const isNameForHCM = name.endsWith("_HCM");
+      if (hasHCM && isNameForHCM) {
+        map.set(name.replace("_HCM", ""), color);
+        continue;
+      }
+      if (!hasHCM && !isNameForHCM) {
+        map.set(name, color);
+      }
+    }
+    return shadow(this, "highlightColors", map);
   }
   get highlightColorNames() {
     return shadow(this, "highlightColorNames", this.highlightColors ? new Map(Array.from(this.highlightColors, e => e.reverse())) : null);
+  }
+  getNonHCMColor(color) {
+    if (!this._highlightColors) {
+      return color;
+    }
+    const colorName = this.highlightColorNames.get(color);
+    return this._highlightColors.get(colorName) || color;
+  }
+  getNonHCMColorName(color) {
+    return this.highlightColorNames.get(color) || color;
   }
   setCurrentDrawingSession(layer) {
     if (layer) {
@@ -7371,6 +8150,12 @@ class AnnotationEditorUIManager {
   }
   editAltText(editor, firstTime = false) {
     this.#altTextManager?.editAltText(this, editor, firstTime);
+  }
+  hasCommentManager() {
+    return !!this.#commentManager;
+  }
+  editComment(editor, position) {
+    this.#commentManager?.open(this, editor, position);
   }
   getSignature(editor) {
     this.#signatureManager?.getSignature({
@@ -7535,6 +8320,18 @@ class AnnotationEditorUIManager {
   addToAnnotationStorage(editor) {
     if (!editor.isEmpty() && this.#annotationStorage && !this.#annotationStorage.has(editor.id)) {
       this.#annotationStorage.setValue(editor.id, editor);
+    }
+  }
+  a11yAlert(messageId, args = null) {
+    const viewerAlert = this.#viewerAlert;
+    if (!viewerAlert) {
+      return;
+    }
+    viewerAlert.setAttribute("data-l10n-id", messageId);
+    if (args) {
+      viewerAlert.setAttribute("data-l10n-args", JSON.stringify(args));
+    } else {
+      viewerAlert.removeAttribute("data-l10n-args");
     }
   }
   #selectionChange() {
@@ -7924,7 +8721,7 @@ class AnnotationEditorUIManager {
   removeLayer(layer) {
     this.#allLayers.delete(layer.pageIndex);
   }
-  async updateMode(mode, editId = null, isFromKeyboard = false) {
+  async updateMode(mode, editId = null, isFromKeyboard = false, mustEnterInEditMode = false, editComment = false) {
     if (this.#mode === mode) {
       return;
     }
@@ -7963,7 +8760,11 @@ class AnnotationEditorUIManager {
     for (const editor of this.#allEditors.values()) {
       if (editor.annotationElementId === editId || editor.id === editId) {
         this.setSelected(editor);
-        editor.enterInEditMode();
+        if (editComment) {
+          editor.editComment();
+        } else if (mustEnterInEditMode) {
+          editor.enterInEditMode();
+        }
       } else {
         editor.unselect();
       }
@@ -7992,9 +8793,6 @@ class AnnotationEditorUIManager {
       case AnnotationEditorParamsType.CREATE:
         this.currentLayer.addNewEditor(value);
         return;
-      case AnnotationEditorParamsType.HIGHLIGHT_DEFAULT_COLOR:
-        this.#mainHighlightColorPicker?.updateColor(value);
-        break;
       case AnnotationEditorParamsType.HIGHLIGHT_SHOW_ALL:
         this._eventBus.dispatch("reporttelemetry", {
           source: this,
@@ -8010,11 +8808,14 @@ class AnnotationEditorUIManager {
         this.showAllEditors("highlight", value);
         break;
     }
-    for (const editor of this.#selectedEditors) {
-      editor.updateParams(type, value);
-    }
-    for (const editorType of this.#editorTypes) {
-      editorType.updateDefaultParams(type, value);
+    if (this.hasSelection) {
+      for (const editor of this.#selectedEditors) {
+        editor.updateParams(type, value);
+      }
+    } else {
+      for (const editorType of this.#editorTypes) {
+        editorType.updateDefaultParams(type, value);
+      }
     }
   }
   showAllEditors(type, visible, updateButton = false) {
@@ -8162,6 +8963,10 @@ class AnnotationEditorUIManager {
     });
   }
   setSelected(editor) {
+    this.updateToolbar({
+      mode: editor.mode,
+      editId: editor.id
+    });
     this.#currentDrawingSession?.commitOrRemove();
     for (const ed of this.#selectedEditors) {
       if (ed !== editor) {
@@ -8835,6 +9640,126 @@ class AltText {
   }
 }
 
+;// ./src/display/editor/comment.js
+
+class Comment {
+  #commentButton = null;
+  #commentWasFromKeyBoard = false;
+  #editor = null;
+  #initialText = null;
+  #text = null;
+  #date = null;
+  #deleted = false;
+  constructor(editor) {
+    this.#editor = editor;
+    this.toolbar = null;
+  }
+  render() {
+    if (!this.#editor._uiManager.hasCommentManager()) {
+      return null;
+    }
+    const comment = this.#commentButton = document.createElement("button");
+    comment.className = "comment";
+    comment.tabIndex = "0";
+    comment.setAttribute("data-l10n-id", "pdfjs-editor-edit-comment-button");
+    const signal = this.#editor._uiManager._signal;
+    comment.addEventListener("contextmenu", noContextMenu, {
+      signal
+    });
+    comment.addEventListener("pointerdown", event => event.stopPropagation(), {
+      signal
+    });
+    const onClick = event => {
+      event.preventDefault();
+      this.edit();
+    };
+    comment.addEventListener("click", onClick, {
+      capture: true,
+      signal
+    });
+    comment.addEventListener("keydown", event => {
+      if (event.target === comment && event.key === "Enter") {
+        this.#commentWasFromKeyBoard = true;
+        onClick(event);
+      }
+    }, {
+      signal
+    });
+    return comment;
+  }
+  edit() {
+    const {
+      bottom,
+      left,
+      right
+    } = this.#editor.getClientDimensions();
+    const position = {
+      top: bottom
+    };
+    if (this.#editor._uiManager.direction === "ltr") {
+      position.right = right;
+    } else {
+      position.left = left;
+    }
+    this.#editor._uiManager.editComment(this.#editor, position);
+  }
+  finish() {
+    if (!this.#commentButton) {
+      return;
+    }
+    this.#commentButton.focus({
+      focusVisible: this.#commentWasFromKeyBoard
+    });
+    this.#commentWasFromKeyBoard = false;
+  }
+  isDeleted() {
+    return this.#deleted || this.#text === "";
+  }
+  hasBeenEdited() {
+    return this.isDeleted() || this.#text !== this.#initialText;
+  }
+  serialize() {
+    return this.data;
+  }
+  get data() {
+    return {
+      text: this.#text,
+      date: this.#date,
+      deleted: this.#deleted
+    };
+  }
+  set data(text) {
+    if (text === null) {
+      this.#text = "";
+      this.#deleted = true;
+      return;
+    }
+    this.#text = text;
+    this.#date = new Date();
+    this.#deleted = false;
+  }
+  setInitialText(text) {
+    this.#initialText = text;
+    this.data = text;
+  }
+  toggle(enabled = false) {
+    if (!this.#commentButton) {
+      return;
+    }
+    this.#commentButton.disabled = !enabled;
+  }
+  shown() {}
+  destroy() {
+    this.#commentButton?.remove();
+    this.#commentButton = null;
+    this.#text = "";
+    this.#date = null;
+    this.#editor = null;
+    this.#commentWasFromKeyBoard = false;
+    this.#deleted = false;
+  }
+}
+
 ;// ./src/display/touch_manager.js
 
 class TouchManager {
@@ -9018,10 +9943,12 @@ class TouchManager {
 
 
 
+
 class AnnotationEditor {
   #accessibilityData = null;
   #allResizerDivs = null;
   #altText = null;
+  #comment = null;
   #disabled = false;
   #dragPointerId = null;
   #dragPointerType = "";
@@ -9091,6 +10018,7 @@ class AnnotationEditor {
     this._willKeepAspectRatio = false;
     this._initialOptions.isCentered = parameters.isCentered;
     this._structTreeParentId = null;
+    this.annotationElementId = parameters.annotationElementId || null;
     const {
       rotation,
       rawDims: {
@@ -9112,6 +10040,9 @@ class AnnotationEditor {
   }
   get editorType() {
     return Object.getPrototypeOf(this).constructor._type;
+  }
+  get mode() {
+    return Object.getPrototypeOf(this).constructor._editorType;
   }
   static get isDrawer() {
     return false;
@@ -9247,6 +10178,9 @@ class AnnotationEditor {
     }
   }
   commit() {
+    if (!this.isInEditMode()) {
+      return;
+    }
     this.addToAnnotationStorage();
   }
   addToAnnotationStorage() {
@@ -9696,15 +10630,25 @@ class AnnotationEditor {
   altTextFinish() {
     this.#altText?.finish();
   }
+  get toolbarButtons() {
+    return null;
+  }
   async addEditToolbar() {
     if (this._editToolbar || this.#isInEditMode) {
       return this._editToolbar;
     }
     this._editToolbar = new EditorToolbar(this);
     this.div.append(this._editToolbar.render());
-    if (this.#altText) {
-      await this._editToolbar.addAltText(this.#altText);
+    this._editToolbar.addButton("comment", this.addCommentButton());
+    const {
+      toolbarButtons
+    } = this;
+    if (toolbarButtons) {
+      for (const [name, tool] of toolbarButtons) {
+        await this._editToolbar.addButton(name, tool);
+      }
     }
+    this._editToolbar.addButton("delete");
     return this._editToolbar;
   }
   removeEditToolbar() {
@@ -9726,17 +10670,16 @@ class AnnotationEditor {
   getClientDimensions() {
     return this.div.getBoundingClientRect();
   }
-  async addAltTextButton() {
-    if (this.#altText) {
-      return;
+  createAltText() {
+    if (!this.#altText) {
+      AltText.initialize(AnnotationEditor._l10n);
+      this.#altText = new AltText(this);
+      if (this.#accessibilityData) {
+        this.#altText.data = this.#accessibilityData;
+        this.#accessibilityData = null;
+      }
     }
-    AltText.initialize(AnnotationEditor._l10n);
-    this.#altText = new AltText(this);
-    if (this.#accessibilityData) {
-      this.#altText.data = this.#accessibilityData;
-      this.#accessibilityData = null;
-    }
-    await this.addEditToolbar();
+    return this.#altText;
   }
   get altTextData() {
     return this.#altText?.data;
@@ -9761,6 +10704,53 @@ class AnnotationEditor {
   }
   hasAltTextData() {
     return this.#altText?.hasData() ?? false;
+  }
+  addCommentButton() {
+    if (this.#comment) {
+      return this.#comment;
+    }
+    return this.#comment = new Comment(this);
+  }
+  get commentColor() {
+    return null;
+  }
+  get comment() {
+    const comment = this.#comment;
+    return {
+      text: comment.data.text,
+      date: comment.data.date,
+      deleted: comment.isDeleted(),
+      color: this.commentColor
+    };
+  }
+  set comment(text) {
+    if (!this.#comment) {
+      this.#comment = new Comment(this);
+    }
+    this.#comment.data = text;
+  }
+  setCommentData(text) {
+    if (!this.#comment) {
+      this.#comment = new Comment(this);
+    }
+    this.#comment.setInitialText(text);
+  }
+  get hasEditedComment() {
+    return this.#comment?.hasBeenEdited();
+  }
+  async editComment() {
+    if (!this.#comment) {
+      this.#comment = new Comment(this);
+    }
+    this.#comment.edit();
+  }
+  addComment(serialized) {
+    if (this.hasEditedComment) {
+      serialized.popup = {
+        contents: this.comment.text,
+        deleted: this.comment.deleted
+      };
+    }
   }
   render() {
     const div = this.div = document.createElement("div");
@@ -10077,7 +11067,8 @@ class AnnotationEditor {
     const editor = new this.prototype.constructor({
       parent,
       id: parent.getNextId(),
-      uiManager
+      uiManager,
+      annotationElementId: data.annotationElementId
     });
     editor.rotation = data.rotation;
     editor.#accessibilityData = data.accessibilityData;
@@ -10413,6 +11404,7 @@ class FakeEditor extends AnnotationEditor {
 }
 
 ;// ./src/shared/murmurhash3.js
+
 
 
 
@@ -11021,6 +12013,7 @@ class FontFaceObject {
 
 
 
+
 function getUrlProp(val) {
   if (val instanceof URL) {
     return val.href;
@@ -11584,6 +12577,7 @@ class DOMCanvasFactory extends BaseCanvasFactory {
 
 
 
+
 class BaseCMapReaderFactory {
   constructor({
     baseUrl = null,
@@ -11623,7 +12617,6 @@ class DOMCMapReaderFactory extends BaseCMapReaderFactory {
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.iterator.filter.js
 var es_iterator_filter = __webpack_require__(2489);
 ;// ./src/display/filter_factory.js
-
 
 
 
@@ -11971,6 +12964,7 @@ class DOMFilterFactory extends BaseFilterFactory {
 
 
 
+
 class BaseStandardFontDataFactory {
   constructor({
     baseUrl = null
@@ -12012,6 +13006,7 @@ class DOMStandardFontDataFactory extends BaseStandardFontDataFactory {
 
 
 
+
 class BaseWasmFactory {
   constructor({
     baseUrl = null
@@ -12044,6 +13039,7 @@ class DOMWasmFactory extends BaseWasmFactory {
 }
 
 ;// ./src/display/node_utils.js
+
 
 
 
@@ -12128,6 +13124,7 @@ class NodeWasmFactory extends BaseWasmFactory {
 }
 
 ;// ./src/display/pattern_helper.js
+
 
 
 
@@ -12625,6 +13622,7 @@ class TilingPattern {
 
 
 
+
 function convertToRGBA(params) {
   switch (params.kind) {
     case ImageKind.GRAYSCALE_1BPP:
@@ -12732,6 +13730,7 @@ function grayToRGBA(src, dest) {
 }
 
 ;// ./src/display/canvas.js
+
 
 
 
@@ -13776,6 +14775,9 @@ class CanvasGraphics {
       fontSize,
       path
     } of paths) {
+      if (!path) {
+        continue;
+      }
       newPath.addPath(path, new DOMMatrix(transform).preMultiplySelf(invTransf).translate(x, y).scale(fontSize, -fontSize));
     }
     ctx.clip(newPath);
@@ -13874,10 +14876,10 @@ class CanvasGraphics {
     const patternFill = current.patternFill && !font.missingFile;
     const patternStroke = current.patternStroke && !font.missingFile;
     let path;
-    if (font.disableFontFace || isAddToPathSet || patternFill || patternStroke) {
+    if ((font.disableFontFace || isAddToPathSet || patternFill || patternStroke) && !font.missingFile) {
       path = font.getPathGenerator(this.commonObjs, character);
     }
-    if (font.disableFontFace || patternFill || patternStroke) {
+    if (path && (font.disableFontFace || patternFill || patternStroke)) {
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(fontSize, -fontSize);
@@ -15074,6 +16076,7 @@ class OptionalContentConfig {
 
 
 
+
 class PDFDataTransportStream {
   constructor(pdfDataRangeTransport, {
     disableRange = false,
@@ -15547,6 +16550,7 @@ function validateResponseStatus(status) {
 }
 
 ;// ./src/display/fetch_stream.js
+
 
 
 
@@ -16182,6 +17186,7 @@ class PDFNetworkStreamRangeRequestReader {
 
 
 
+
 const urlRegex = /^[a-z][a-z0-9\-+.]+:/i;
 function parseUrlOrPath(sourceUrl) {
   if (urlRegex.test(sourceUrl)) {
@@ -16632,7 +17637,7 @@ class TextLayer {
           const parent = this.#container;
           this.#container = document.createElement("span");
           this.#container.classList.add("markedContent");
-          if (item.id !== null) {
+          if (item.id) {
             this.#container.setAttribute("id", `${item.id}`);
           }
           parent.append(this.#container);
@@ -16931,6 +17936,7 @@ class XfaText {
 
 
 
+
 const RENDERING_CANCELLED_TIMEOUT = 100;
 function getDocument(src = {}) {
   if (typeof src === "string" || src instanceof URL) {
@@ -17016,7 +18022,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.3.31",
+    apiVersion: "5.4.54",
     data,
     password,
     disableAutoFetch,
@@ -17088,7 +18094,7 @@ function getDocument(src = {}) {
         throw new Error("Worker was destroyed");
       }
       const messageHandler = new MessageHandler(docId, workerId, worker.port);
-      const transport = new WorkerTransport(messageHandler, task, networkStream, transportParams, transportFactory);
+      const transport = new WorkerTransport(messageHandler, task, networkStream, transportParams, transportFactory, enableHWA);
       task._transport = transport;
       messageHandler.send("Ready", null);
     });
@@ -17366,6 +18372,7 @@ class PDFPageProxy {
   }
   render({
     canvasContext,
+    canvas = canvasContext.canvas,
     viewport,
     intent = "display",
     annotationMode = AnnotationMode.ENABLE,
@@ -17432,6 +18439,7 @@ class PDFPageProxy {
     const internalRenderTask = new InternalRenderTask({
       callback: complete,
       params: {
+        canvas,
         canvasContext,
         viewport,
         transform,
@@ -17446,7 +18454,8 @@ class PDFPageProxy {
       filterFactory: this._transport.filterFactory,
       useRequestAnimationFrame: !intentPrint,
       pdfBug: this._pdfBug,
-      pageColors
+      pageColors,
+      enableHWA: this._transport.enableHWA
     });
     (intentState.renderTasks ||= new Set()).add(internalRenderTask);
     const renderTask = internalRenderTask.task;
@@ -17940,7 +18949,7 @@ class WorkerTransport {
   #pagePromises = new Map();
   #pageRefCache = new Map();
   #passwordCapability = null;
-  constructor(messageHandler, loadingTask, networkStream, params, factory) {
+  constructor(messageHandler, loadingTask, networkStream, params, factory, enableHWA) {
     this.messageHandler = messageHandler;
     this.loadingTask = loadingTask;
     this.commonObjs = new PDFObjects();
@@ -17961,6 +18970,7 @@ class WorkerTransport {
     this._fullReader = null;
     this._lastProgress = null;
     this.downloadInfoCapability = Promise.withResolvers();
+    this.enableHWA = enableHWA;
     this.setupMessageHandler();
   }
   #cacheSimpleMethod(name, data = null) {
@@ -18499,7 +19509,8 @@ class InternalRenderTask {
     filterFactory,
     useRequestAnimationFrame = false,
     pdfBug = false,
-    pageColors = null
+    pageColors = null,
+    enableHWA = false
   }) {
     this.callback = callback;
     this.params = params;
@@ -18524,7 +19535,9 @@ class InternalRenderTask {
     this._continueBound = this._continue.bind(this);
     this._scheduleNextBound = this._scheduleNext.bind(this);
     this._nextBound = this._next.bind(this);
-    this._canvas = params.canvasContext.canvas;
+    this._canvas = params.canvas;
+    this._canvasContext = params.canvas ? null : params.canvasContext;
+    this._enableHWA = enableHWA;
   }
   get completed() {
     return this.capability.promise.catch(function () {});
@@ -18548,11 +19561,14 @@ class InternalRenderTask {
       this.stepper.nextBreakPoint = this.stepper.getNextBreakPoint();
     }
     const {
-      canvasContext,
       viewport,
       transform,
       background
     } = this.params;
+    const canvasContext = this._canvasContext || this._canvas.getContext("2d", {
+      alpha: false,
+      willReadFrequently: !this._enableHWA
+    });
     this.gfx = new CanvasGraphics(canvasContext, this.commonObjs, this.objs, this.canvasFactory, this.filterFactory, {
       optionalContentConfig
     }, this.annotationCanvasMap, this.pageColors);
@@ -18626,8 +19642,290 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.3.31";
-const build = "47ad820d9";
+const version = "5.4.54";
+const build = "295fb3ec4";
+
+;// ./src/display/editor/color_picker.js
+
+
+
+class ColorPicker {
+  #button = null;
+  #buttonSwatch = null;
+  #defaultColor;
+  #dropdown = null;
+  #dropdownWasFromKeyboard = false;
+  #isMainColorPicker = false;
+  #editor = null;
+  #eventBus;
+  #openDropdownAC = null;
+  #uiManager = null;
+  static #l10nColor = null;
+  static get _keyboardManager() {
+    return shadow(this, "_keyboardManager", new KeyboardManager([[["Escape", "mac+Escape"], ColorPicker.prototype._hideDropdownFromKeyboard], [[" ", "mac+ "], ColorPicker.prototype._colorSelectFromKeyboard], [["ArrowDown", "ArrowRight", "mac+ArrowDown", "mac+ArrowRight"], ColorPicker.prototype._moveToNext], [["ArrowUp", "ArrowLeft", "mac+ArrowUp", "mac+ArrowLeft"], ColorPicker.prototype._moveToPrevious], [["Home", "mac+Home"], ColorPicker.prototype._moveToBeginning], [["End", "mac+End"], ColorPicker.prototype._moveToEnd]]));
+  }
+  constructor({
+    editor = null,
+    uiManager = null
+  }) {
+    if (editor) {
+      this.#isMainColorPicker = false;
+      this.#editor = editor;
+    } else {
+      this.#isMainColorPicker = true;
+    }
+    this.#uiManager = editor?._uiManager || uiManager;
+    this.#eventBus = this.#uiManager._eventBus;
+    this.#defaultColor = editor?.color?.toUpperCase() || this.#uiManager?.highlightColors.values().next().value || "#FFFF98";
+    ColorPicker.#l10nColor ||= Object.freeze({
+      blue: "pdfjs-editor-colorpicker-blue",
+      green: "pdfjs-editor-colorpicker-green",
+      pink: "pdfjs-editor-colorpicker-pink",
+      red: "pdfjs-editor-colorpicker-red",
+      yellow: "pdfjs-editor-colorpicker-yellow"
+    });
+  }
+  renderButton() {
+    const button = this.#button = document.createElement("button");
+    button.className = "colorPicker";
+    button.tabIndex = "0";
+    button.setAttribute("data-l10n-id", "pdfjs-editor-colorpicker-button");
+    button.ariaHasPopup = "true";
+    if (this.#editor) {
+      button.ariaControls = `${this.#editor.id}_colorpicker_dropdown`;
+    }
+    const signal = this.#uiManager._signal;
+    button.addEventListener("click", this.#openDropdown.bind(this), {
+      signal
+    });
+    button.addEventListener("keydown", this.#keyDown.bind(this), {
+      signal
+    });
+    const swatch = this.#buttonSwatch = document.createElement("span");
+    swatch.className = "swatch";
+    swatch.ariaHidden = "true";
+    swatch.style.backgroundColor = this.#defaultColor;
+    button.append(swatch);
+    return button;
+  }
+  renderMainDropdown() {
+    const dropdown = this.#dropdown = this.#getDropdownRoot();
+    dropdown.ariaOrientation = "horizontal";
+    dropdown.ariaLabelledBy = "highlightColorPickerLabel";
+    return dropdown;
+  }
+  #getDropdownRoot() {
+    const div = document.createElement("div");
+    const signal = this.#uiManager._signal;
+    div.addEventListener("contextmenu", noContextMenu, {
+      signal
+    });
+    div.className = "dropdown";
+    div.role = "listbox";
+    div.ariaMultiSelectable = "false";
+    div.ariaOrientation = "vertical";
+    div.setAttribute("data-l10n-id", "pdfjs-editor-colorpicker-dropdown");
+    if (this.#editor) {
+      div.id = `${this.#editor.id}_colorpicker_dropdown`;
+    }
+    for (const [name, color] of this.#uiManager.highlightColors) {
+      const button = document.createElement("button");
+      button.tabIndex = "0";
+      button.role = "option";
+      button.setAttribute("data-color", color);
+      button.title = name;
+      button.setAttribute("data-l10n-id", ColorPicker.#l10nColor[name]);
+      const swatch = document.createElement("span");
+      button.append(swatch);
+      swatch.className = "swatch";
+      swatch.style.backgroundColor = color;
+      button.ariaSelected = color === this.#defaultColor;
+      button.addEventListener("click", this.#colorSelect.bind(this, color), {
+        signal
+      });
+      div.append(button);
+    }
+    div.addEventListener("keydown", this.#keyDown.bind(this), {
+      signal
+    });
+    return div;
+  }
+  #colorSelect(color, event) {
+    event.stopPropagation();
+    this.#eventBus.dispatch("switchannotationeditorparams", {
+      source: this,
+      type: AnnotationEditorParamsType.HIGHLIGHT_COLOR,
+      value: color
+    });
+    this.updateColor(color);
+  }
+  _colorSelectFromKeyboard(event) {
+    if (event.target === this.#button) {
+      this.#openDropdown(event);
+      return;
+    }
+    const color = event.target.getAttribute("data-color");
+    if (!color) {
+      return;
+    }
+    this.#colorSelect(color, event);
+  }
+  _moveToNext(event) {
+    if (!this.#isDropdownVisible) {
+      this.#openDropdown(event);
+      return;
+    }
+    if (event.target === this.#button) {
+      this.#dropdown.firstChild?.focus();
+      return;
+    }
+    event.target.nextSibling?.focus();
+  }
+  _moveToPrevious(event) {
+    if (event.target === this.#dropdown?.firstChild || event.target === this.#button) {
+      if (this.#isDropdownVisible) {
+        this._hideDropdownFromKeyboard();
+      }
+      return;
+    }
+    if (!this.#isDropdownVisible) {
+      this.#openDropdown(event);
+    }
+    event.target.previousSibling?.focus();
+  }
+  _moveToBeginning(event) {
+    if (!this.#isDropdownVisible) {
+      this.#openDropdown(event);
+      return;
+    }
+    this.#dropdown.firstChild?.focus();
+  }
+  _moveToEnd(event) {
+    if (!this.#isDropdownVisible) {
+      this.#openDropdown(event);
+      return;
+    }
+    this.#dropdown.lastChild?.focus();
+  }
+  #keyDown(event) {
+    ColorPicker._keyboardManager.exec(this, event);
+  }
+  #openDropdown(event) {
+    if (this.#isDropdownVisible) {
+      this.hideDropdown();
+      return;
+    }
+    this.#dropdownWasFromKeyboard = event.detail === 0;
+    if (!this.#openDropdownAC) {
+      this.#openDropdownAC = new AbortController();
+      window.addEventListener("pointerdown", this.#pointerDown.bind(this), {
+        signal: this.#uiManager.combinedSignal(this.#openDropdownAC)
+      });
+    }
+    this.#button.ariaExpanded = "true";
+    if (this.#dropdown) {
+      this.#dropdown.classList.remove("hidden");
+      return;
+    }
+    const root = this.#dropdown = this.#getDropdownRoot();
+    this.#button.append(root);
+  }
+  #pointerDown(event) {
+    if (this.#dropdown?.contains(event.target)) {
+      return;
+    }
+    this.hideDropdown();
+  }
+  hideDropdown() {
+    this.#dropdown?.classList.add("hidden");
+    this.#button.ariaExpanded = "false";
+    this.#openDropdownAC?.abort();
+    this.#openDropdownAC = null;
+  }
+  get #isDropdownVisible() {
+    return this.#dropdown && !this.#dropdown.classList.contains("hidden");
+  }
+  _hideDropdownFromKeyboard() {
+    if (this.#isMainColorPicker) {
+      return;
+    }
+    if (!this.#isDropdownVisible) {
+      this.#editor?.unselect();
+      return;
+    }
+    this.hideDropdown();
+    this.#button.focus({
+      preventScroll: true,
+      focusVisible: this.#dropdownWasFromKeyboard
+    });
+  }
+  updateColor(color) {
+    if (this.#buttonSwatch) {
+      this.#buttonSwatch.style.backgroundColor = color;
+    }
+    if (!this.#dropdown) {
+      return;
+    }
+    const i = this.#uiManager.highlightColors.values();
+    for (const child of this.#dropdown.children) {
+      child.ariaSelected = i.next().value === color.toUpperCase();
+    }
+  }
+  destroy() {
+    this.#button?.remove();
+    this.#button = null;
+    this.#buttonSwatch = null;
+    this.#dropdown?.remove();
+    this.#dropdown = null;
+  }
+}
+class BasicColorPicker {
+  #input = null;
+  #editor = null;
+  #uiManager = null;
+  static #l10nColor = null;
+  constructor(editor) {
+    this.#editor = editor;
+    this.#uiManager = editor._uiManager;
+    BasicColorPicker.#l10nColor ||= Object.freeze({
+      freetext: "pdfjs-editor-color-picker-free-text-input",
+      ink: "pdfjs-editor-color-picker-ink-input"
+    });
+  }
+  renderButton() {
+    if (this.#input) {
+      return this.#input;
+    }
+    const {
+      editorType,
+      colorType,
+      colorValue
+    } = this.#editor;
+    const input = this.#input = document.createElement("input");
+    input.type = "color";
+    input.value = colorValue || "#000000";
+    input.className = "basicColorPicker";
+    input.tabIndex = 0;
+    input.setAttribute("data-l10n-id", BasicColorPicker.#l10nColor[editorType]);
+    input.addEventListener("input", () => {
+      this.#uiManager.updateParams(colorType, input.value);
+    }, {
+      signal: this.#uiManager._signal
+    });
+    return input;
+  }
+  update(value) {
+    if (!this.#input) {
+      return;
+    }
+    this.#input.value = value;
+  }
+  destroy() {
+    this.#input?.remove();
+    this.#input = null;
+  }
+  hideDropdown() {}
+}
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.iterator.flat-map.js
 var es_iterator_flat_map = __webpack_require__(531);
@@ -18691,6 +19989,8 @@ class ColorConverters {
     return ["CMYK", c, m, y, k];
   }
 }
+const DateFormats = (/* unused pure expression or super */ null && (["m/d", "m/d/yy", "mm/dd/yy", "mm/yy", "d-mmm", "d-mmm-yy", "dd-mmm-yy", "yy-mm-dd", "mmm-yy", "mmmm-yy", "mmm d, yyyy", "mmmm d, yyyy", "m/d/yy h:MM tt", "m/d/yy HH:MM"]));
+const TimeFormats = (/* unused pure expression or super */ null && (["HH:MM", "h:MM tt", "HH:MM:ss", "h:MM:ss tt"]));
 
 ;// ./src/display/svg_factory.js
 
@@ -18956,9 +20256,9 @@ class XfaLayer {
 
 
 
-const DEFAULT_TAB_INDEX = 1000;
 const annotation_layer_DEFAULT_FONT_SIZE = 9;
 const GetElementsByNameSet = new WeakSet();
+const TIMEZONE_OFFSET = new Date().getTimezoneOffset() * 60 * 1000;
 class AnnotationElementFactory {
   static create(parameters) {
     const subtype = parameters.data.annotationType;
@@ -19050,11 +20350,10 @@ class AnnotationElement {
     }
   }
   static _hasPopupData({
-    titleObj,
     contentsObj,
     richText
   }) {
-    return !!(titleObj?.str || contentsObj?.str || richText?.str);
+    return !!(contentsObj?.str || richText?.str);
   }
   get _isEditable() {
     return this.data.isEditable;
@@ -19066,16 +20365,32 @@ class AnnotationElement {
     if (!this.container) {
       return;
     }
-    this.#updates ||= {
-      rect: this.data.rect.slice(0)
-    };
+    if (params.rect) {
+      this.#updates ||= {
+        rect: this.data.rect.slice(0)
+      };
+    }
     const {
-      rect
+      rect,
+      popup: newPopup
     } = params;
     if (rect) {
       this.#setRectEdited(rect);
     }
-    this.#popupElement?.popup.updateEdited(params);
+    let popup = this.#popupElement?.popup || this.popup;
+    if (!popup && newPopup?.text) {
+      this._createPopup(newPopup);
+      popup = this.#popupElement.popup;
+    }
+    if (!popup) {
+      return;
+    }
+    popup.updateEdited(params);
+    if (newPopup?.deleted) {
+      popup.remove();
+      this.#popupElement = null;
+      this.popup = null;
+    }
   }
   resetEdited() {
     if (!this.#updates) {
@@ -19125,8 +20440,8 @@ class AnnotationElement {
     } = this;
     const container = document.createElement("section");
     container.setAttribute("data-annotation-id", data.id);
-    if (!(this instanceof WidgetAnnotationElement)) {
-      container.tabIndex = DEFAULT_TAB_INDEX;
+    if (!(this instanceof WidgetAnnotationElement) && !(this instanceof LinkAnnotationElement)) {
+      container.tabIndex = 0;
     }
     const {
       style
@@ -19375,6 +20690,7 @@ class AnnotationElement {
     svg.classList.add("quadrilateralsContainer");
     svg.setAttribute("width", 0);
     svg.setAttribute("height", 0);
+    svg.role = "none";
     const defs = svgFactory.createElement("defs");
     svg.append(defs);
     const clipPath = svgFactory.createElement("clipPath");
@@ -19406,26 +20722,41 @@ class AnnotationElement {
     this.container.append(svg);
     this.container.style.clipPath = `url(#${id})`;
   }
-  _createPopup() {
+  _createPopup(popupData = null) {
     const {
       data
     } = this;
+    let contentsObj, modificationDate;
+    if (popupData) {
+      contentsObj = {
+        str: popupData.text
+      };
+      modificationDate = popupData.date;
+    } else {
+      contentsObj = data.contentsObj;
+      modificationDate = data.modificationDate;
+    }
     const popup = this.#popupElement = new PopupAnnotationElement({
       data: {
         color: data.color,
         titleObj: data.titleObj,
-        modificationDate: data.modificationDate,
-        contentsObj: data.contentsObj,
+        modificationDate,
+        contentsObj,
         richText: data.richText,
         parentRect: data.rect,
         borderStyle: 0,
         id: `popup_${data.id}`,
-        rotation: data.rotation
+        rotation: data.rotation,
+        noRotate: true
       },
+      linkService: this.linkService,
       parent: this.parent,
       elements: [this]
     });
     this.parent.div.append(popup.render());
+  }
+  get hasPopupElement() {
+    return !!(this.#popupElement || this.popup || this.data.popupRef);
   }
   render() {
     unreachable("Abstract method `AnnotationElement.render` called");
@@ -19519,7 +20850,8 @@ class AnnotationElement {
       this.linkService.eventBus?.dispatch("switchannotationeditormode", {
         source: this,
         mode,
-        editId
+        editId,
+        mustEnterInEditMode: true
       });
     });
   }
@@ -19551,16 +20883,16 @@ class LinkAnnotationElement extends AnnotationElement {
       linkService.addLinkAttributes(link, data.url, data.newWindow);
       isBound = true;
     } else if (data.action) {
-      this._bindNamedAction(link, data.action);
+      this._bindNamedAction(link, data.action, data.overlaidText);
       isBound = true;
     } else if (data.attachment) {
-      this.#bindAttachment(link, data.attachment, data.attachmentDest);
+      this.#bindAttachment(link, data.attachment, data.overlaidText, data.attachmentDest);
       isBound = true;
     } else if (data.setOCGState) {
-      this.#bindSetOCGState(link, data.setOCGState);
+      this.#bindSetOCGState(link, data.setOCGState, data.overlaidText);
       isBound = true;
     } else if (data.dest) {
-      this._bindLink(link, data.dest);
+      this._bindLink(link, data.dest, data.overlaidText);
       isBound = true;
     } else {
       if (data.actions && (data.actions.Action || data.actions["Mouse Up"] || data.actions["Mouse Down"]) && this.enableScripting && this.hasJSActions) {
@@ -19584,7 +20916,7 @@ class LinkAnnotationElement extends AnnotationElement {
   #setInternalLink() {
     this.container.setAttribute("data-internal-link", "");
   }
-  _bindLink(link, destination) {
+  _bindLink(link, destination, overlaidText = "") {
     link.href = this.linkService.getDestinationHash(destination);
     link.onclick = () => {
       if (destination) {
@@ -19595,19 +20927,27 @@ class LinkAnnotationElement extends AnnotationElement {
     if (destination || destination === "") {
       this.#setInternalLink();
     }
+    if (overlaidText) {
+      link.title = overlaidText;
+    }
   }
-  _bindNamedAction(link, action) {
+  _bindNamedAction(link, action, overlaidText = "") {
     link.href = this.linkService.getAnchorUrl("");
     link.onclick = () => {
       this.linkService.executeNamedAction(action);
       return false;
     };
+    if (overlaidText) {
+      link.title = overlaidText;
+    }
     this.#setInternalLink();
   }
-  #bindAttachment(link, attachment, dest = null) {
+  #bindAttachment(link, attachment, overlaidText = "", dest = null) {
     link.href = this.linkService.getAnchorUrl("");
     if (attachment.description) {
       link.title = attachment.description;
+    } else if (overlaidText) {
+      link.title = overlaidText;
     }
     link.onclick = () => {
       this.downloadManager?.openOrDownloadData(attachment.content, attachment.filename, dest);
@@ -19615,12 +20955,15 @@ class LinkAnnotationElement extends AnnotationElement {
     };
     this.#setInternalLink();
   }
-  #bindSetOCGState(link, action) {
+  #bindSetOCGState(link, action, overlaidText = "") {
     link.href = this.linkService.getAnchorUrl("");
     link.onclick = () => {
       this.linkService.executeSetOCGState(action);
       return false;
     };
+    if (overlaidText) {
+      link.title = overlaidText;
+    }
     this.#setInternalLink();
   }
   _bindJSAction(link, data) {
@@ -19641,6 +20984,9 @@ class LinkAnnotationElement extends AnnotationElement {
         });
         return false;
       };
+    }
+    if (data.overlaidText) {
+      link.title = data.overlaidText;
     }
     if (!link.onclick) {
       link.onclick = () => false;
@@ -19948,7 +21294,16 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
       element.setAttribute("data-element-id", id);
       element.disabled = this.data.readOnly;
       element.name = this.data.fieldName;
-      element.tabIndex = DEFAULT_TAB_INDEX;
+      element.tabIndex = 0;
+      const {
+        datetimeFormat,
+        datetimeType,
+        timeStep
+      } = this.data;
+      const hasDateOrTime = !!datetimeType && this.enableScripting;
+      if (datetimeFormat) {
+        element.title = datetimeFormat;
+      }
       this._setRequired(element, this.data.required);
       if (maxLen) {
         element.maxLength = maxLen;
@@ -19982,8 +21337,25 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
           const {
             target
           } = event;
+          if (hasDateOrTime) {
+            target.type = datetimeType;
+            if (timeStep) {
+              target.step = timeStep;
+            }
+          }
           if (elementData.userValue) {
-            target.value = elementData.userValue;
+            const value = elementData.userValue;
+            if (hasDateOrTime) {
+              if (datetimeType === "time") {
+                const date = new Date(value);
+                const parts = [date.getHours(), date.getMinutes(), date.getSeconds()];
+                target.value = parts.map(v => v.toString().padStart(2, "0")).join(":");
+              } else {
+                target.value = new Date(value - TIMEZONE_OFFSET).toISOString().split(datetimeType === "date" ? "T" : ".", 1)[0];
+              }
+            } else {
+              target.value = value;
+            }
           }
           elementData.lastCommittedValue = target.value;
           elementData.commitKey = 1;
@@ -19996,9 +21368,11 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
           const actions = {
             value(event) {
               elementData.userValue = event.detail.value ?? "";
-              storage.setValue(id, {
-                value: elementData.userValue.toString()
-              });
+              if (!hasDateOrTime) {
+                storage.setValue(id, {
+                  value: elementData.userValue.toString()
+                });
+              }
               event.target.value = elementData.userValue;
             },
             formattedValue(event) {
@@ -20009,9 +21383,13 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
               if (formattedValue !== null && formattedValue !== undefined && event.target !== document.activeElement) {
                 event.target.value = formattedValue;
               }
-              storage.setValue(id, {
+              const data = {
                 formattedValue
-              });
+              };
+              if (hasDateOrTime) {
+                data.value = formattedValue;
+              }
+              storage.setValue(id, data);
             },
             selRange(event) {
               event.target.setSelectionRange(...event.detail.selRange);
@@ -20097,8 +21475,21 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
             elementData.focused = false;
           }
           const {
+            target
+          } = event;
+          let {
             value
-          } = event.target;
+          } = target;
+          if (hasDateOrTime) {
+            if (value && datetimeType === "time") {
+              const parts = value.split(":").map(v => parseInt(v, 10));
+              value = new Date(2000, 0, 1, parts[0], parts[1], parts[2] || 0).valueOf();
+              target.step = "";
+            } else {
+              value = new Date(value).valueOf();
+            }
+            target.type = "text";
+          }
           elementData.userValue = value;
           if (elementData.lastCommittedValue !== value) {
             this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
@@ -20238,7 +21629,7 @@ class CheckboxWidgetAnnotationElement extends WidgetAnnotationElement {
       element.setAttribute("checked", true);
     }
     element.setAttribute("exportValue", data.exportValue);
-    element.tabIndex = DEFAULT_TAB_INDEX;
+    element.tabIndex = 0;
     element.addEventListener("change", event => {
       const {
         name,
@@ -20318,7 +21709,7 @@ class RadioButtonWidgetAnnotationElement extends WidgetAnnotationElement {
     if (value) {
       element.setAttribute("checked", true);
     }
-    element.tabIndex = DEFAULT_TAB_INDEX;
+    element.tabIndex = 0;
     element.addEventListener("change", event => {
       const {
         name,
@@ -20402,7 +21793,7 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
     selectElement.disabled = this.data.readOnly;
     this._setRequired(selectElement, this.data.required);
     selectElement.name = this.data.fieldName;
-    selectElement.tabIndex = DEFAULT_TAB_INDEX;
+    selectElement.tabIndex = 0;
     let addAnEmptyEntry = this.data.combo && this.data.options.length > 0;
     if (!this.data.combo) {
       selectElement.size = this.data.options.length;
@@ -20618,12 +22009,16 @@ class PopupAnnotationElement extends AnnotationElement {
     this.popup = null;
   }
   render() {
-    this.container.classList.add("popupAnnotation");
+    const {
+      container
+    } = this;
+    container.classList.add("popupAnnotation");
+    container.role = "comment";
     const popup = this.popup = new PopupElement({
       container: this.container,
       color: this.data.color,
       titleObj: this.data.titleObj,
-      modificationDate: this.data.modificationDate,
+      modificationDate: this.data.modificationDate || this.data.creationDate,
       contentsObj: this.data.contentsObj,
       richText: this.data.richText,
       rect: this.data.rect,
@@ -20657,6 +22052,7 @@ class PopupElement {
   #parentRect = null;
   #pinned = false;
   #popup = null;
+  #popupAbortController = null;
   #position = null;
   #rect = null;
   #richText = null;
@@ -20687,18 +22083,36 @@ class PopupElement {
     this.#elements = elements;
     this.#dateObj = PDFDateString.toDateObject(modificationDate);
     this.trigger = elements.flatMap(e => e.getElementsToTriggerPopup());
-    for (const element of this.trigger) {
-      element.addEventListener("click", this.#boundToggle);
-      element.addEventListener("mouseenter", this.#boundShow);
-      element.addEventListener("mouseleave", this.#boundHide);
-      element.classList.add("popupTriggerArea");
-    }
-    for (const element of elements) {
-      element.container?.addEventListener("keydown", this.#boundKeyDown);
-    }
+    this.#addEventListeners();
     this.#container.hidden = true;
     if (open) {
       this.#toggle();
+    }
+  }
+  #addEventListeners() {
+    if (this.#popupAbortController) {
+      return;
+    }
+    this.#popupAbortController = new AbortController();
+    const {
+      signal
+    } = this.#popupAbortController;
+    for (const element of this.trigger) {
+      element.addEventListener("click", this.#boundToggle, {
+        signal
+      });
+      element.addEventListener("mouseenter", this.#boundShow, {
+        signal
+      });
+      element.addEventListener("mouseleave", this.#boundHide, {
+        signal
+      });
+      element.classList.add("popupTriggerArea");
+    }
+    for (const element of this.#elements) {
+      element.container?.addEventListener("keydown", this.#boundKeyDown, {
+        signal
+      });
     }
   }
   render() {
@@ -20713,20 +22127,24 @@ class PopupElement {
     }
     const header = document.createElement("span");
     header.className = "header";
-    const title = document.createElement("h1");
-    header.append(title);
-    ({
-      dir: title.dir,
-      str: title.textContent
-    } = this.#titleObj);
+    if (this.#titleObj?.str) {
+      const title = document.createElement("span");
+      title.className = "title";
+      header.append(title);
+      ({
+        dir: title.dir,
+        str: title.textContent
+      } = this.#titleObj);
+    }
     popup.append(header);
     if (this.#dateObj) {
-      const modificationDate = document.createElement("span");
-      modificationDate.classList.add("popupDate");
+      const modificationDate = document.createElement("time");
+      modificationDate.className = "popupDate";
       modificationDate.setAttribute("data-l10n-id", "pdfjs-annotation-date-time-string");
       modificationDate.setAttribute("data-l10n-args", JSON.stringify({
         dateObj: this.#dateObj.valueOf()
       }));
+      modificationDate.dateTime = this.#dateObj.toISOString();
       header.append(modificationDate);
     }
     const html = this.#html;
@@ -20814,8 +22232,14 @@ class PopupElement {
   }
   updateEdited({
     rect,
-    popupContent
+    popup,
+    deleted
   }) {
+    if (deleted || popup?.deleted) {
+      this.remove();
+      return;
+    }
+    this.#addEventListeners();
     this.#updates ||= {
       contentsObj: this.#contentsObj,
       richText: this.#richText
@@ -20823,8 +22247,9 @@ class PopupElement {
     if (rect) {
       this.#position = null;
     }
-    if (popupContent) {
-      this.#richText = this.#makePopupContent(popupContent);
+    if (popup) {
+      this.#richText = this.#makePopupContent(popup.text);
+      this.#dateObj = PDFDateString.toDateObject(popup.date);
       this.#contentsObj = null;
     }
     this.#popup?.remove();
@@ -20842,6 +22267,17 @@ class PopupElement {
     this.#popup?.remove();
     this.#popup = null;
     this.#position = null;
+  }
+  remove() {
+    this.#popupAbortController?.abort();
+    this.#popupAbortController = null;
+    this.#popup?.remove();
+    this.#popup = null;
+    this.#wasVisible = false;
+    this.#pinned = false;
+    for (const element of this.trigger) {
+      element.classList.remove("popupTriggerArea");
+    }
   }
   #setPosition() {
     if (this.#position !== null) {
@@ -20921,6 +22357,7 @@ class PopupElement {
     this.#container.hidden = true;
   }
   maybeShow() {
+    this.#addEventListeners();
     if (!this.#wasVisible) {
       return;
     }
@@ -21277,11 +22714,23 @@ class HighlightAnnotationElement extends AnnotationElement {
     this.annotationEditorType = AnnotationEditorType.HIGHLIGHT;
   }
   render() {
-    if (!this.data.popupRef && this.hasPopupData) {
+    const {
+      data: {
+        overlaidText,
+        popupRef
+      }
+    } = this;
+    if (!popupRef && this.hasPopupData) {
       this._createPopup();
     }
     this.container.classList.add("highlightAnnotation");
     this._editOnDoubleClick();
+    if (overlaidText) {
+      const mark = document.createElement("mark");
+      mark.classList.add("overlaidText");
+      mark.textContent = overlaidText;
+      this.container.append(mark);
+    }
     return this.container;
   }
 }
@@ -21294,10 +22743,22 @@ class UnderlineAnnotationElement extends AnnotationElement {
     });
   }
   render() {
-    if (!this.data.popupRef && this.hasPopupData) {
+    const {
+      data: {
+        overlaidText,
+        popupRef
+      }
+    } = this;
+    if (!popupRef && this.hasPopupData) {
       this._createPopup();
     }
     this.container.classList.add("underlineAnnotation");
+    if (overlaidText) {
+      const underline = document.createElement("u");
+      underline.classList.add("overlaidText");
+      underline.textContent = overlaidText;
+      this.container.append(underline);
+    }
     return this.container;
   }
 }
@@ -21310,10 +22771,22 @@ class SquigglyAnnotationElement extends AnnotationElement {
     });
   }
   render() {
-    if (!this.data.popupRef && this.hasPopupData) {
+    const {
+      data: {
+        overlaidText,
+        popupRef
+      }
+    } = this;
+    if (!popupRef && this.hasPopupData) {
       this._createPopup();
     }
     this.container.classList.add("squigglyAnnotation");
+    if (overlaidText) {
+      const underline = document.createElement("u");
+      underline.classList.add("overlaidText");
+      underline.textContent = overlaidText;
+      this.container.append(underline);
+    }
     return this.container;
   }
 }
@@ -21326,10 +22799,22 @@ class StrikeOutAnnotationElement extends AnnotationElement {
     });
   }
   render() {
-    if (!this.data.popupRef && this.hasPopupData) {
+    const {
+      data: {
+        overlaidText,
+        popupRef
+      }
+    } = this;
+    if (!popupRef && this.hasPopupData) {
       this._createPopup();
     }
     this.container.classList.add("strikeoutAnnotation");
+    if (overlaidText) {
+      const strikeout = document.createElement("s");
+      strikeout.classList.add("overlaidText");
+      strikeout.textContent = overlaidText;
+      this.container.append(strikeout);
+    }
     return this.container;
   }
 }
@@ -21437,7 +22922,7 @@ class AnnotationLayer {
   hasEditableAnnotations() {
     return this.#editableAnnotations.size > 0;
   }
-  async #appendElement(element, id) {
+  async #appendElement(element, id, popupElements) {
     const contentElement = element.firstChild || element;
     const annotationId = contentElement.id = `${AnnotationPrefix}${id}`;
     const ariaAttributes = await this.#structTreeLayer?.getAriaAttributes(annotationId);
@@ -21446,8 +22931,12 @@ class AnnotationLayer {
         contentElement.setAttribute(key, value);
       }
     }
-    this.div.append(element);
-    this.#accessibilityManager?.moveElementInDOM(this.div, element, contentElement, false);
+    if (popupElements) {
+      popupElements.at(-1).container.after(element);
+    } else {
+      this.div.append(element);
+      this.#accessibilityManager?.moveElementInDOM(this.div, element, contentElement, false);
+    }
   }
   async render(params) {
     const {
@@ -21504,7 +22993,7 @@ class AnnotationLayer {
       if (data.hidden) {
         rendered.style.visibility = "hidden";
       }
-      await this.#appendElement(rendered, data.id);
+      await this.#appendElement(rendered, data.id, elementParams.elements);
       if (element._isEditable) {
         this.#editableAnnotations.set(element.data.id, element);
         this._annotationEditorUIManager?.renderAnnotationElement(element);
@@ -21528,7 +23017,7 @@ class AnnotationLayer {
         continue;
       }
       const rendered = element.render();
-      await this.#appendElement(rendered, data.id);
+      await this.#appendElement(rendered, data.id, null);
     }
   }
   update({
@@ -21605,6 +23094,7 @@ class AnnotationLayer {
 
 
 
+
 const EOL_PATTERN = /\r\n?|\n/g;
 class FreeTextEditor extends AnnotationEditor {
   #color;
@@ -21612,6 +23102,7 @@ class FreeTextEditor extends AnnotationEditor {
   #editorDivId = `${this.id}-editor`;
   #editModeAC = null;
   #fontSize;
+  _colorPicker = null;
   static _freeTextDefaultContent = "";
   static _internalPadding = 0;
   static _defaultColor = null;
@@ -21658,6 +23149,9 @@ class FreeTextEditor extends AnnotationEditor {
     });
     this.#color = params.color || FreeTextEditor._defaultColor || AnnotationEditor._defaultLineColor;
     this.#fontSize = params.fontSize || FreeTextEditor._defaultFontSize;
+    if (!this.annotationElementId) {
+      this._uiManager.a11yAlert("pdfjs-editor-freetext-added-alert");
+    }
   }
   static initialize(l10n, uiManager) {
     AnnotationEditor.initialize(l10n, uiManager);
@@ -21690,6 +23184,16 @@ class FreeTextEditor extends AnnotationEditor {
   get propertiesToUpdate() {
     return [[AnnotationEditorParamsType.FREETEXT_SIZE, this.#fontSize], [AnnotationEditorParamsType.FREETEXT_COLOR, this.#color]];
   }
+  get toolbarButtons() {
+    this._colorPicker ||= new BasicColorPicker(this);
+    return [["colorPicker", this._colorPicker]];
+  }
+  get colorType() {
+    return AnnotationEditorParamsType.FREETEXT_COLOR;
+  }
+  get colorValue() {
+    return this.#color;
+  }
   #updateFontSize(fontSize) {
     const setFontsize = size => {
       this.editorDiv.style.fontSize = `calc(${size}px * var(--total-scale-factor))`;
@@ -21711,6 +23215,7 @@ class FreeTextEditor extends AnnotationEditor {
   #updateColor(color) {
     const setColor = col => {
       this.#color = this.editorDiv.style.color = col;
+      this._colorPicker?.update(col);
     };
     const savedColor = this.#color;
     this.addCommands({
@@ -22111,7 +23616,8 @@ class FreeTextEditor extends AnnotationEditor {
           rect,
           rotation,
           id,
-          popupRef
+          popupRef,
+          contentsObj
         },
         textContent,
         textPosition,
@@ -22133,17 +23639,21 @@ class FreeTextEditor extends AnnotationEditor {
         pageIndex: pageNumber - 1,
         rect: rect.slice(0),
         rotation,
+        annotationElementId: id,
         id,
         deleted: false,
-        popupRef
+        popupRef,
+        comment: contentsObj?.str || null
       };
     }
     const editor = await super.deserialize(data, parent, uiManager);
     editor.#fontSize = data.fontSize;
     editor.#color = Util.makeHexColor(...data.color);
     editor.#content = FreeTextEditor.#deserializeContent(data.value);
-    editor.annotationElementId = data.id || null;
     editor._initialData = initialData;
+    if (data.comment) {
+      editor.setCommentData(data.comment);
+    }
     return editor;
   }
   serialize(isForCopying = false) {
@@ -22166,6 +23676,7 @@ class FreeTextEditor extends AnnotationEditor {
       rotation: this.rotation,
       structTreeParentId: this._structTreeParentId
     };
+    this.addComment(serialized);
     if (isForCopying) {
       serialized.isCopy = true;
       return serialized;
@@ -22183,13 +23694,10 @@ class FreeTextEditor extends AnnotationEditor {
       color,
       pageIndex
     } = this._initialData;
-    return this._hasBeenMoved || serialized.value !== value || serialized.fontSize !== fontSize || serialized.color.some((c, i) => c !== color[i]) || serialized.pageIndex !== pageIndex;
+    return this.hasEditedComment || this._hasBeenMoved || serialized.value !== value || serialized.fontSize !== fontSize || serialized.color.some((c, i) => c !== color[i]) || serialized.pageIndex !== pageIndex;
   }
   renderAnnotationElement(annotation) {
     const content = super.renderAnnotationElement(annotation);
-    if (this.deleted) {
-      return content;
-    }
     const {
       style
     } = content;
@@ -22202,10 +23710,13 @@ class FreeTextEditor extends AnnotationEditor {
       content.append(div);
     }
     const padding = FreeTextEditor._internalPadding * this.parentScale;
-    annotation.updateEdited({
-      rect: this.getRect(padding, padding),
-      popupContent: this.#content
-    });
+    const params = {
+      rect: this.getRect(padding, padding)
+    };
+    params.popup = this.hasEditedComment ? this.comment : {
+      text: this.#content
+    };
+    annotation.updateEdited(params);
     return content;
   }
   resetAnnotationElement(annotation) {
@@ -22215,6 +23726,7 @@ class FreeTextEditor extends AnnotationEditor {
 }
 
 ;// ./src/display/editor/drawers/outline.js
+
 
 
 
@@ -22287,6 +23799,7 @@ class Outline {
 }
 
 ;// ./src/display/editor/drawers/freedraw.js
+
 
 
 
@@ -22652,6 +24165,7 @@ class FreeDrawOutline extends Outline {
 
 
 
+
 class HighlightOutliner {
   #box;
   #lastPoint;
@@ -22891,236 +24405,8 @@ class FreeHighlightOutline extends FreeDrawOutline {
   }
 }
 
-;// ./src/display/editor/color_picker.js
-
-
-
-class ColorPicker {
-  #button = null;
-  #buttonSwatch = null;
-  #defaultColor;
-  #dropdown = null;
-  #dropdownWasFromKeyboard = false;
-  #isMainColorPicker = false;
-  #editor = null;
-  #eventBus;
-  #openDropdownAC = null;
-  #uiManager = null;
-  #type;
-  static #l10nColor = null;
-  static get _keyboardManager() {
-    return shadow(this, "_keyboardManager", new KeyboardManager([[["Escape", "mac+Escape"], ColorPicker.prototype._hideDropdownFromKeyboard], [[" ", "mac+ "], ColorPicker.prototype._colorSelectFromKeyboard], [["ArrowDown", "ArrowRight", "mac+ArrowDown", "mac+ArrowRight"], ColorPicker.prototype._moveToNext], [["ArrowUp", "ArrowLeft", "mac+ArrowUp", "mac+ArrowLeft"], ColorPicker.prototype._moveToPrevious], [["Home", "mac+Home"], ColorPicker.prototype._moveToBeginning], [["End", "mac+End"], ColorPicker.prototype._moveToEnd]]));
-  }
-  constructor({
-    editor = null,
-    uiManager = null
-  }) {
-    if (editor) {
-      this.#isMainColorPicker = false;
-      this.#type = AnnotationEditorParamsType.HIGHLIGHT_COLOR;
-      this.#editor = editor;
-    } else {
-      this.#isMainColorPicker = true;
-      this.#type = AnnotationEditorParamsType.HIGHLIGHT_DEFAULT_COLOR;
-    }
-    this.#uiManager = editor?._uiManager || uiManager;
-    this.#eventBus = this.#uiManager._eventBus;
-    this.#defaultColor = editor?.color || this.#uiManager?.highlightColors.values().next().value || "#FFFF98";
-    ColorPicker.#l10nColor ||= Object.freeze({
-      blue: "pdfjs-editor-colorpicker-blue",
-      green: "pdfjs-editor-colorpicker-green",
-      pink: "pdfjs-editor-colorpicker-pink",
-      red: "pdfjs-editor-colorpicker-red",
-      yellow: "pdfjs-editor-colorpicker-yellow"
-    });
-  }
-  renderButton() {
-    const button = this.#button = document.createElement("button");
-    button.className = "colorPicker";
-    button.tabIndex = "0";
-    button.setAttribute("data-l10n-id", "pdfjs-editor-colorpicker-button");
-    button.setAttribute("aria-haspopup", true);
-    const signal = this.#uiManager._signal;
-    button.addEventListener("click", this.#openDropdown.bind(this), {
-      signal
-    });
-    button.addEventListener("keydown", this.#keyDown.bind(this), {
-      signal
-    });
-    const swatch = this.#buttonSwatch = document.createElement("span");
-    swatch.className = "swatch";
-    swatch.setAttribute("aria-hidden", true);
-    swatch.style.backgroundColor = this.#defaultColor;
-    button.append(swatch);
-    return button;
-  }
-  renderMainDropdown() {
-    const dropdown = this.#dropdown = this.#getDropdownRoot();
-    dropdown.setAttribute("aria-orientation", "horizontal");
-    dropdown.setAttribute("aria-labelledby", "highlightColorPickerLabel");
-    return dropdown;
-  }
-  #getDropdownRoot() {
-    const div = document.createElement("div");
-    const signal = this.#uiManager._signal;
-    div.addEventListener("contextmenu", noContextMenu, {
-      signal
-    });
-    div.className = "dropdown";
-    div.role = "listbox";
-    div.setAttribute("aria-multiselectable", false);
-    div.setAttribute("aria-orientation", "vertical");
-    div.setAttribute("data-l10n-id", "pdfjs-editor-colorpicker-dropdown");
-    for (const [name, color] of this.#uiManager.highlightColors) {
-      const button = document.createElement("button");
-      button.tabIndex = "0";
-      button.role = "option";
-      button.setAttribute("data-color", color);
-      button.title = name;
-      button.setAttribute("data-l10n-id", ColorPicker.#l10nColor[name]);
-      const swatch = document.createElement("span");
-      button.append(swatch);
-      swatch.className = "swatch";
-      swatch.style.backgroundColor = color;
-      button.setAttribute("aria-selected", color === this.#defaultColor);
-      button.addEventListener("click", this.#colorSelect.bind(this, color), {
-        signal
-      });
-      div.append(button);
-    }
-    div.addEventListener("keydown", this.#keyDown.bind(this), {
-      signal
-    });
-    return div;
-  }
-  #colorSelect(color, event) {
-    event.stopPropagation();
-    this.#eventBus.dispatch("switchannotationeditorparams", {
-      source: this,
-      type: this.#type,
-      value: color
-    });
-  }
-  _colorSelectFromKeyboard(event) {
-    if (event.target === this.#button) {
-      this.#openDropdown(event);
-      return;
-    }
-    const color = event.target.getAttribute("data-color");
-    if (!color) {
-      return;
-    }
-    this.#colorSelect(color, event);
-  }
-  _moveToNext(event) {
-    if (!this.#isDropdownVisible) {
-      this.#openDropdown(event);
-      return;
-    }
-    if (event.target === this.#button) {
-      this.#dropdown.firstChild?.focus();
-      return;
-    }
-    event.target.nextSibling?.focus();
-  }
-  _moveToPrevious(event) {
-    if (event.target === this.#dropdown?.firstChild || event.target === this.#button) {
-      if (this.#isDropdownVisible) {
-        this._hideDropdownFromKeyboard();
-      }
-      return;
-    }
-    if (!this.#isDropdownVisible) {
-      this.#openDropdown(event);
-    }
-    event.target.previousSibling?.focus();
-  }
-  _moveToBeginning(event) {
-    if (!this.#isDropdownVisible) {
-      this.#openDropdown(event);
-      return;
-    }
-    this.#dropdown.firstChild?.focus();
-  }
-  _moveToEnd(event) {
-    if (!this.#isDropdownVisible) {
-      this.#openDropdown(event);
-      return;
-    }
-    this.#dropdown.lastChild?.focus();
-  }
-  #keyDown(event) {
-    ColorPicker._keyboardManager.exec(this, event);
-  }
-  #openDropdown(event) {
-    if (this.#isDropdownVisible) {
-      this.hideDropdown();
-      return;
-    }
-    this.#dropdownWasFromKeyboard = event.detail === 0;
-    if (!this.#openDropdownAC) {
-      this.#openDropdownAC = new AbortController();
-      window.addEventListener("pointerdown", this.#pointerDown.bind(this), {
-        signal: this.#uiManager.combinedSignal(this.#openDropdownAC)
-      });
-    }
-    if (this.#dropdown) {
-      this.#dropdown.classList.remove("hidden");
-      return;
-    }
-    const root = this.#dropdown = this.#getDropdownRoot();
-    this.#button.append(root);
-  }
-  #pointerDown(event) {
-    if (this.#dropdown?.contains(event.target)) {
-      return;
-    }
-    this.hideDropdown();
-  }
-  hideDropdown() {
-    this.#dropdown?.classList.add("hidden");
-    this.#openDropdownAC?.abort();
-    this.#openDropdownAC = null;
-  }
-  get #isDropdownVisible() {
-    return this.#dropdown && !this.#dropdown.classList.contains("hidden");
-  }
-  _hideDropdownFromKeyboard() {
-    if (this.#isMainColorPicker) {
-      return;
-    }
-    if (!this.#isDropdownVisible) {
-      this.#editor?.unselect();
-      return;
-    }
-    this.hideDropdown();
-    this.#button.focus({
-      preventScroll: true,
-      focusVisible: this.#dropdownWasFromKeyboard
-    });
-  }
-  updateColor(color) {
-    if (this.#buttonSwatch) {
-      this.#buttonSwatch.style.backgroundColor = color;
-    }
-    if (!this.#dropdown) {
-      return;
-    }
-    const i = this.#uiManager.highlightColors.values();
-    for (const child of this.#dropdown.children) {
-      child.setAttribute("aria-selected", i.next().value === color);
-    }
-  }
-  destroy() {
-    this.#button?.remove();
-    this.#button = null;
-    this.#buttonSwatch = null;
-    this.#dropdown?.remove();
-    this.#dropdown = null;
-  }
-}
-
 ;// ./src/display/editor/highlight.js
+
 
 
 
@@ -23199,12 +24485,15 @@ class HighlightEditor extends AnnotationEditor {
       this.#addToDrawLayer();
       this.rotate(this.rotation);
     }
+    if (!this.annotationElementId) {
+      this._uiManager.a11yAlert("pdfjs-editor-highlight-added-alert");
+    }
   }
   get telemetryInitialData() {
     return {
       action: "added",
       type: this.#isFreeHighlight ? "free_highlight" : "highlight",
-      color: this._uiManager.highlightColorNames.get(this.color),
+      color: this._uiManager.getNonHCMColorName(this.color),
       thickness: this.#thickness,
       methodOfCreation: this.#methodOfCreation
     };
@@ -23212,8 +24501,11 @@ class HighlightEditor extends AnnotationEditor {
   get telemetryFinalData() {
     return {
       type: "highlight",
-      color: this._uiManager.highlightColorNames.get(this.color)
+      color: this._uiManager.getNonHCMColorName(this.color)
     };
+  }
+  get commentColor() {
+    return this.color;
   }
   static computeTelemetryFinalData(data) {
     return {
@@ -23317,7 +24609,7 @@ class HighlightEditor extends AnnotationEditor {
   }
   static updateDefaultParams(type, value) {
     switch (type) {
-      case AnnotationEditorParamsType.HIGHLIGHT_DEFAULT_COLOR:
+      case AnnotationEditorParamsType.HIGHLIGHT_COLOR:
         HighlightEditor._defaultColor = value;
         break;
       case AnnotationEditorParamsType.HIGHLIGHT_THICKNESS:
@@ -23340,7 +24632,7 @@ class HighlightEditor extends AnnotationEditor {
     }
   }
   static get defaultPropertiesToUpdate() {
-    return [[AnnotationEditorParamsType.HIGHLIGHT_DEFAULT_COLOR, HighlightEditor._defaultColor], [AnnotationEditorParamsType.HIGHLIGHT_THICKNESS, HighlightEditor._defaultThickness]];
+    return [[AnnotationEditorParamsType.HIGHLIGHT_COLOR, HighlightEditor._defaultColor], [AnnotationEditorParamsType.HIGHLIGHT_THICKNESS, HighlightEditor._defaultThickness]];
   }
   get propertiesToUpdate() {
     return [[AnnotationEditorParamsType.HIGHLIGHT_COLOR, this.color || HighlightEditor._defaultColor], [AnnotationEditorParamsType.HIGHLIGHT_THICKNESS, this.#thickness || HighlightEditor._defaultThickness], [AnnotationEditorParamsType.HIGHLIGHT_FREE, this.#isFreeHighlight]];
@@ -23370,7 +24662,7 @@ class HighlightEditor extends AnnotationEditor {
     });
     this._reportTelemetry({
       action: "color_changed",
-      color: this._uiManager.highlightColorNames.get(color)
+      color: this._uiManager.getNonHCMColorName(color)
     }, true);
   }
   #updateThickness(thickness) {
@@ -23393,18 +24685,14 @@ class HighlightEditor extends AnnotationEditor {
       thickness
     }, true);
   }
-  async addEditToolbar() {
-    const toolbar = await super.addEditToolbar();
-    if (!toolbar) {
-      return null;
-    }
+  get toolbarButtons() {
     if (this._uiManager.highlightColors) {
-      this.#colorPicker = new ColorPicker({
+      const colorPicker = this.#colorPicker = new ColorPicker({
         editor: this
       });
-      toolbar.addColorPicker(this.#colorPicker);
+      return [["colorPicker", colorPicker]];
     }
-    return toolbar;
+    return super.toolbarButtons;
   }
   disableEditing() {
     super.disableEditing();
@@ -23795,7 +25083,8 @@ class HighlightEditor extends AnnotationEditor {
           id,
           color,
           opacity,
-          popupRef
+          popupRef,
+          contentsObj
         },
         parent: {
           page: {
@@ -23812,9 +25101,11 @@ class HighlightEditor extends AnnotationEditor {
         pageIndex: pageNumber - 1,
         rect: rect.slice(0),
         rotation,
+        annotationElementId: id,
         id,
         deleted: false,
-        popupRef
+        popupRef,
+        comment: contentsObj?.str || null
       };
     } else if (data instanceof InkAnnotationElement) {
       const {
@@ -23827,7 +25118,8 @@ class HighlightEditor extends AnnotationEditor {
           borderStyle: {
             rawWidth: thickness
           },
-          popupRef
+          popupRef,
+          contentsObj
         },
         parent: {
           page: {
@@ -23844,9 +25136,11 @@ class HighlightEditor extends AnnotationEditor {
         pageIndex: pageNumber - 1,
         rect: rect.slice(0),
         rotation,
+        annotationElementId: id,
         id,
         deleted: false,
-        popupRef
+        popupRef,
+        comment: contentsObj?.str || null
       };
     }
     const {
@@ -23861,8 +25155,10 @@ class HighlightEditor extends AnnotationEditor {
     if (inkLists) {
       editor.#thickness = data.thickness;
     }
-    editor.annotationElementId = data.id || null;
     editor._initialData = initialData;
+    if (data.comment) {
+      editor.setCommentData(data.comment);
+    }
     const [pageWidth, pageHeight] = editor.pageDimensions;
     const [pageX, pageY] = editor.pageTranslation;
     if (quadPoints) {
@@ -23927,7 +25223,7 @@ class HighlightEditor extends AnnotationEditor {
       return this.serializeDeleted();
     }
     const rect = this.getRect(0, 0);
-    const color = AnnotationEditor._colorManager.convert(this.color);
+    const color = AnnotationEditor._colorManager.convert(this._uiManager.getNonHCMColor(this.color));
     const serialized = {
       annotationType: AnnotationEditorType.HIGHLIGHT,
       color,
@@ -23940,6 +25236,7 @@ class HighlightEditor extends AnnotationEditor {
       rotation: this.#getRotation(),
       structTreeParentId: this._structTreeParentId
     };
+    this.addComment(serialized);
     if (this.annotationElementId && !this.#hasElementChanged(serialized)) {
       return null;
     }
@@ -23950,12 +25247,16 @@ class HighlightEditor extends AnnotationEditor {
     const {
       color
     } = this._initialData;
-    return serialized.color.some((c, i) => c !== color[i]);
+    return this.hasEditedComment || serialized.color.some((c, i) => c !== color[i]);
   }
   renderAnnotationElement(annotation) {
-    annotation.updateEdited({
+    const params = {
       rect: this.getRect(0, 0)
-    });
+    };
+    if (this.hasEditedComment) {
+      params.popup = this.comment;
+    }
+    annotation.updateEdited(params);
     return null;
   }
   static canCreateNewEmptyEditor() {
@@ -24014,6 +25315,7 @@ class DrawingOptions {
 class DrawingEditor extends AnnotationEditor {
   #drawOutlines = null;
   #mustBeCommitted;
+  _colorPicker = null;
   _drawId = null;
   static _currentDrawId = -1;
   static _currentParent = null;
@@ -24043,6 +25345,9 @@ class DrawingEditor extends AnnotationEditor {
   }) {
     this.#drawOutlines = drawOutlines;
     this._drawingOptions ||= drawingOptions;
+    if (!this.annotationElementId) {
+      this._uiManager.a11yAlert(`pdfjs-editor-${this.editorType}-added-alert`);
+    }
     if (drawId >= 0) {
       this._drawId = drawId;
       this.parent.drawLayer.finalizeDraw(drawId, drawOutlines.defaultProperties);
@@ -24124,6 +25429,9 @@ class DrawingEditor extends AnnotationEditor {
         this.#updateBbox(bbox);
       }
       this.parent?.drawLayer.updateProperties(this._drawId, options.toSVGProperties());
+      if (type === this.colorType) {
+        this._colorPicker?.update(val);
+      }
     };
     this.addCommands({
       cmd: setter.bind(this, value),
@@ -24607,6 +25915,7 @@ class DrawingEditor extends AnnotationEditor {
 }
 
 ;// ./src/display/editor/drawers/inkdraw.js
+
 
 
 
@@ -25281,6 +26590,7 @@ class InkDrawOutline extends Outline {
 
 
 
+
 class InkDrawingOptions extends DrawingOptions {
   constructor(viewerParameters) {
     super();
@@ -25355,7 +26665,8 @@ class InkEditor extends DrawingEditor {
           borderStyle: {
             rawWidth: thickness
           },
-          popupRef
+          popupRef,
+          contentsObj
         },
         parent: {
           page: {
@@ -25375,15 +26686,29 @@ class InkEditor extends DrawingEditor {
         pageIndex: pageNumber - 1,
         rect: rect.slice(0),
         rotation,
+        annotationElementId: id,
         id,
         deleted: false,
-        popupRef
+        popupRef,
+        comment: contentsObj?.str || null
       };
     }
     const editor = await super.deserialize(data, parent, uiManager);
-    editor.annotationElementId = data.id || null;
     editor._initialData = initialData;
+    if (data.comment) {
+      editor.setCommentData(data.comment);
+    }
     return editor;
+  }
+  get toolbarButtons() {
+    this._colorPicker ||= new BasicColorPicker(this);
+    return [["colorPicker", this._colorPicker]];
+  }
+  get colorType() {
+    return AnnotationEditorParamsType.INK_COLOR;
+  }
+  get colorValue() {
+    return this._drawingOptions.stroke;
   }
   onScaleChanging() {
     if (!this.parent) {
@@ -25451,6 +26776,7 @@ class InkEditor extends DrawingEditor {
       rotation: this.rotation,
       structTreeParentId: this._structTreeParentId
     };
+    this.addComment(serialized);
     if (isForCopying) {
       serialized.isCopy = true;
       return serialized;
@@ -25468,18 +26794,22 @@ class InkEditor extends DrawingEditor {
       opacity,
       pageIndex
     } = this._initialData;
-    return this._hasBeenMoved || this._hasBeenResized || serialized.color.some((c, i) => c !== color[i]) || serialized.thickness !== thickness || serialized.opacity !== opacity || serialized.pageIndex !== pageIndex;
+    return this.hasEditedComment || this._hasBeenMoved || this._hasBeenResized || serialized.color.some((c, i) => c !== color[i]) || serialized.thickness !== thickness || serialized.opacity !== opacity || serialized.pageIndex !== pageIndex;
   }
   renderAnnotationElement(annotation) {
     const {
       points,
       rect
     } = this.serializeDraw(false);
-    annotation.updateEdited({
+    const params = {
       rect,
       thickness: this._drawingOptions["stroke-width"],
       points
-    });
+    };
+    if (this.hasEditedComment) {
+      params.popup = this.comment;
+    }
+    annotation.updateEdited(params);
     return null;
   }
 }
@@ -25497,6 +26827,7 @@ class ContourDrawOutline extends InkDrawOutline {
 }
 
 ;// ./src/display/editor/drawers/signaturedraw.js
+
 
 
 
@@ -25769,21 +27100,12 @@ class SignatureExtractor {
     let max = -Infinity;
     let min = Infinity;
     for (let i = 0, ii = out.length; i < ii; i++) {
-      const A = buf[(i << 2) + 3];
-      if (A === 0) {
-        max = out[i] = 0xff;
-        continue;
-      }
       const pix = out[i] = buf[i << 2];
-      if (pix > max) {
-        max = pix;
-      }
-      if (pix < min) {
-        min = pix;
-      }
+      max = Math.max(max, pix);
+      min = Math.min(min, pix);
     }
     const ratio = 255 / (max - min);
-    for (let i = 0; i < N; i++) {
+    for (let i = 0, ii = out.length; i < ii; i++) {
       out[i] = (out[i] - min) * ratio;
     }
     return out;
@@ -25851,6 +27173,8 @@ class SignatureExtractor {
     const ctx = offscreen.getContext("2d", {
       willReadFrequently: true
     });
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, newWidth, newHeight);
     ctx.filter = "grayscale(1)";
     ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, newWidth, newHeight);
     const grayImage = ctx.getImageData(0, 0, newWidth, newHeight).data;
@@ -26277,6 +27601,10 @@ class SignatureEditor extends DrawingEditor {
         this.div.hidden = true;
         this._uiManager.getSignature(this);
       }
+    } else {
+      this.div.setAttribute("data-l10n-args", JSON.stringify({
+        description: this.#description || ""
+      }));
     }
     if (_isCopy) {
       this._isCopy = true;
@@ -26296,6 +27624,12 @@ class SignatureEditor extends DrawingEditor {
   }
   set description(description) {
     this.#description = description;
+    if (!this.div) {
+      return;
+    }
+    this.div.setAttribute("data-l10n-args", JSON.stringify({
+      description
+    }));
     super.addEditToolbar().then(toolbar => {
       toolbar?.updateEditSignatureButton(description);
     });
@@ -26330,16 +27664,11 @@ class SignatureEditor extends DrawingEditor {
       outline: outlineData.outline
     };
   }
-  async addEditToolbar() {
-    const toolbar = await super.addEditToolbar();
-    if (!toolbar) {
-      return null;
+  get toolbarButtons() {
+    if (this._uiManager.signatureManager) {
+      return [["editSignature", this._uiManager.signatureManager]];
     }
-    if (this._uiManager.signatureManager && this.#description !== null) {
-      await toolbar.addEditSignatureButton(this._uiManager.signatureManager, this.#signatureUUID, this.#description);
-      toolbar.show();
-    }
-    return toolbar;
+    return super.toolbarButtons;
   }
   addSignature(data, heightInPage, description, uuid) {
     const {
@@ -26350,10 +27679,7 @@ class SignatureEditor extends DrawingEditor {
       outline
     } = this.#signatureData = data;
     this.#isExtracted = outline instanceof ContourDrawOutline;
-    this.#description = description;
-    this.div.setAttribute("data-l10n-args", JSON.stringify({
-      description
-    }));
+    this.description = description;
     let drawingOptions;
     if (this.#isExtracted) {
       drawingOptions = SignatureEditor.getDefaultDrawingOptions();
@@ -26471,6 +27797,7 @@ class SignatureEditor extends DrawingEditor {
       rotation: this.rotation,
       structTreeParentId: this._structTreeParentId
     };
+    this.addComment(serialized);
     if (isForCopying) {
       serialized.paths = {
         lines,
@@ -26498,7 +27825,7 @@ class SignatureEditor extends DrawingEditor {
   static async deserialize(data, parent, uiManager) {
     const editor = await super.deserialize(data, parent, uiManager);
     editor.#isExtracted = data.areContours;
-    editor.#description = data.accessibilityData?.alt || "";
+    editor.description = data.accessibilityData?.alt || "";
     editor.#signatureUUID = data.uuid;
     return editor;
   }
@@ -26589,8 +27916,10 @@ class StampEditor extends AnnotationEditor {
       return;
     }
     if (this._uiManager.useNewAltTextWhenAddingImage && this._uiManager.useNewAltTextFlow && this.#bitmap) {
-      this._editToolbar.hide();
-      this._uiManager.editAltText(this, true);
+      this.addEditToolbar().then(() => {
+        this._editToolbar.hide();
+        this._uiManager.editAltText(this, true);
+      });
       return;
     }
     if (!this._uiManager.useNewAltTextWhenAddingImage && this._uiManager.useNewAltTextFlow && this.#bitmap) {
@@ -26748,6 +28077,9 @@ class StampEditor extends AnnotationEditor {
   isEmpty() {
     return !(this.#bitmapPromise || this.#bitmap || this.#bitmapUrl || this.#bitmapFile || this.#bitmapId || this.#missingCanvas);
   }
+  get toolbarButtons() {
+    return [["altText", this.createAltText()]];
+  }
   get isResizable() {
     return true;
   }
@@ -26762,7 +28094,7 @@ class StampEditor extends AnnotationEditor {
     }
     super.render();
     this.div.hidden = true;
-    this.addAltTextButton();
+    this.createAltText();
     if (!this.#missingCanvas) {
       if (this.#bitmap) {
         this.#createCanvas();
@@ -26852,6 +28184,9 @@ class StampEditor extends AnnotationEditor {
     });
     if (this.#bitmapFileName) {
       this.div.setAttribute("aria-description", this.#bitmapFileName);
+    }
+    if (!this.annotationElementId) {
+      this._uiManager.a11yAlert("pdfjs-editor-stamp-added-alert");
     }
   }
   copyCanvas(maxDataDimension, maxPreviewDimension, createImageData = false) {
@@ -27020,7 +28355,8 @@ class StampEditor extends AnnotationEditor {
           rotation,
           id,
           structParent,
-          popupRef
+          popupRef,
+          contentsObj
         },
         container,
         parent: {
@@ -27050,6 +28386,7 @@ class StampEditor extends AnnotationEditor {
         pageIndex: pageNumber - 1,
         rect: rect.slice(0),
         rotation,
+        annotationElementId: id,
         id,
         deleted: false,
         accessibilityData: {
@@ -27058,7 +28395,8 @@ class StampEditor extends AnnotationEditor {
         },
         isSvg: false,
         structParent,
-        popupRef
+        popupRef,
+        comment: contentsObj?.str || null
       };
     }
     const editor = await super.deserialize(data, parent, uiManager);
@@ -27085,11 +28423,13 @@ class StampEditor extends AnnotationEditor {
     const [parentWidth, parentHeight] = editor.pageDimensions;
     editor.width = (rect[2] - rect[0]) / parentWidth;
     editor.height = (rect[3] - rect[1]) / parentHeight;
-    editor.annotationElementId = data.id || null;
     if (accessibilityData) {
       editor.altTextData = accessibilityData;
     }
     editor._initialData = initialData;
+    if (data.comment) {
+      editor.setCommentData(data.comment);
+    }
     editor.#hasBeenAddedInUndoStack = !!initialData;
     return editor;
   }
@@ -27109,6 +28449,7 @@ class StampEditor extends AnnotationEditor {
       isSvg: this.#isSvg,
       structTreeParentId: this._structTreeParentId
     };
+    this.addComment(serialized);
     if (isForCopying) {
       serialized.bitmapUrl = this.#serializeBitmap(true);
       serialized.accessibilityData = this.serializeAltText(true);
@@ -27168,21 +28509,23 @@ class StampEditor extends AnnotationEditor {
     const isSamePageIndex = serialized.pageIndex === pageIndex;
     const isSameAltText = (serialized.accessibilityData?.alt || "") === altText;
     return {
-      isSame: !this._hasBeenMoved && !this._hasBeenResized && isSamePageIndex && isSameAltText,
+      isSame: !this.hasEditedComment && !this._hasBeenMoved && !this._hasBeenResized && isSamePageIndex && isSameAltText,
       isSameAltText
     };
   }
   renderAnnotationElement(annotation) {
-    annotation.updateEdited({
+    const params = {
       rect: this.getRect(0, 0)
-    });
+    };
+    if (this.hasEditedComment) {
+      params.popup = this.comment;
+    }
+    annotation.updateEdited(params);
     return null;
   }
 }
 
 ;// ./src/display/editor/annotation_editor_layer.js
-
-
 
 
 
@@ -27212,6 +28555,8 @@ class AnnotationEditorLayer {
   #focusedElement = null;
   #textLayer = null;
   #textSelectionAC = null;
+  #textLayerDblClickAC = null;
+  #lastPointerDownTimestamp = -1;
   #uiManager;
   static _initialized = false;
   static #editorTypes = new Map([FreeTextEditor, InkEditor, StampEditor, HighlightEditor, SignatureEditor].map(type => [type._editorType, type]));
@@ -27313,6 +28658,8 @@ class AnnotationEditorLayer {
     this.#isEnabling = true;
     this.div.tabIndex = 0;
     this.togglePointerEvents(true);
+    this.#textLayerDblClickAC?.abort();
+    this.#textLayerDblClickAC = null;
     const annotationElementIds = new Set();
     for (const editor of this.#editors.values()) {
       editor.enableEditing();
@@ -27348,6 +28695,53 @@ class AnnotationEditorLayer {
     this.#isDisabling = true;
     this.div.tabIndex = -1;
     this.togglePointerEvents(false);
+    if (this.#textLayer && !this.#textLayerDblClickAC) {
+      this.#textLayerDblClickAC = new AbortController();
+      const signal = this.#uiManager.combinedSignal(this.#textLayerDblClickAC);
+      this.#textLayer.div.addEventListener("pointerdown", e => {
+        const DBL_CLICK_THRESHOLD = 500;
+        const {
+          clientX,
+          clientY,
+          timeStamp
+        } = e;
+        const lastPointerDownTimestamp = this.#lastPointerDownTimestamp;
+        if (timeStamp - lastPointerDownTimestamp > DBL_CLICK_THRESHOLD) {
+          this.#lastPointerDownTimestamp = timeStamp;
+          return;
+        }
+        this.#lastPointerDownTimestamp = -1;
+        const {
+          classList
+        } = this.div;
+        classList.toggle("getElements", true);
+        const elements = document.elementsFromPoint(clientX, clientY);
+        classList.toggle("getElements", false);
+        if (!this.div.contains(elements[0])) {
+          return;
+        }
+        let id;
+        const regex = new RegExp(`^${AnnotationEditorPrefix}[0-9]+$`);
+        for (const element of elements) {
+          if (regex.test(element.id)) {
+            id = element.id;
+            break;
+          }
+        }
+        if (!id) {
+          return;
+        }
+        const editor = this.#editors.get(id);
+        if (editor?.annotationElementId === null) {
+          e.stopPropagation();
+          e.preventDefault();
+          editor.dblclick();
+        }
+      }, {
+        signal,
+        capture: true
+      });
+    }
     const changedAnnotations = new Map();
     const resetAnnotations = new Map();
     for (const editor of this.#editors.values()) {
@@ -27371,6 +28765,9 @@ class AnnotationEditorLayer {
           id
         } = editable.data;
         if (this.#uiManager.isDeletedAnnotationElement(id)) {
+          editable.updateEdited({
+            deleted: true
+          });
           continue;
         }
         let editor = resetAnnotations.get(id);
@@ -28108,6 +29505,7 @@ globalThis.pdfjsLib = {
   getDocument: getDocument,
   getFilenameFromUrl: getFilenameFromUrl,
   getPdfFilenameFromUrl: getPdfFilenameFromUrl,
+  getRGB: getRGB,
   getUuid: getUuid,
   getXfaPageViewport: getXfaPageViewport,
   GlobalWorkerOptions: GlobalWorkerOptions,
@@ -28143,6 +29541,6 @@ globalThis.pdfjsLib = {
   XfaLayer: XfaLayer
 };
 
-export { AbortException, AnnotationEditorLayer, AnnotationEditorParamsType, AnnotationEditorType, AnnotationEditorUIManager, AnnotationLayer, AnnotationMode, AnnotationType, ColorPicker, DOMSVGFactory, DrawLayer, util_FeatureTest as FeatureTest, GlobalWorkerOptions, util_ImageKind as ImageKind, InvalidPDFException, MathClamp, OPS, OutputScale, PDFDataRangeTransport, PDFDateString, PDFWorker, PasswordResponses, PermissionFlag, PixelsPerInch, RenderingCancelledException, ResponseException, SignatureExtractor, SupportedImageMimeTypes, TextLayer, TouchManager, Util, VerbosityLevel, XfaLayer, build, createValidAbsoluteUrl, fetchData, getDocument, getFilenameFromUrl, getPdfFilenameFromUrl, getUuid, getXfaPageViewport, isDataScheme, isPdfFile, isValidExplicitDest, noContextMenu, normalizeUnicode, setLayerDimensions, shadow, stopEvent, updateUrlHash, version };
+export { AbortException, AnnotationEditorLayer, AnnotationEditorParamsType, AnnotationEditorType, AnnotationEditorUIManager, AnnotationLayer, AnnotationMode, AnnotationType, ColorPicker, DOMSVGFactory, DrawLayer, util_FeatureTest as FeatureTest, GlobalWorkerOptions, util_ImageKind as ImageKind, InvalidPDFException, MathClamp, OPS, OutputScale, PDFDataRangeTransport, PDFDateString, PDFWorker, PasswordResponses, PermissionFlag, PixelsPerInch, RenderingCancelledException, ResponseException, SignatureExtractor, SupportedImageMimeTypes, TextLayer, TouchManager, Util, VerbosityLevel, XfaLayer, build, createValidAbsoluteUrl, fetchData, getDocument, getFilenameFromUrl, getPdfFilenameFromUrl, getRGB, getUuid, getXfaPageViewport, isDataScheme, isPdfFile, isValidExplicitDest, noContextMenu, normalizeUnicode, setLayerDimensions, shadow, stopEvent, updateUrlHash, version };
 
 //# sourceMappingURL=pdf.mjs.map
