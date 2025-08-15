@@ -32,6 +32,10 @@ CYAN_COLOR='\e[1;36m'
 PURPLE_COLOR='\e[1;35m'
 RES='\e[0m'
 
+# systemd service user, default root
+SYSTEMD_USER="root"
+SYSTEMD_GROUP="root"
+
 # CPU架构定义
 declare -A ARCH_MAP=(
     ["x86_64"]="amd64"
@@ -58,6 +62,46 @@ if [ "$(id -u)" != "0" ]; then
     }
     # 使用sudo重新执行脚本
     exec sudo "bash" "$0" "$@"
+fi
+
+# 解析安装参数
+parse_install_args() {
+    if [ -n "$2" ]; then
+        if [[ "$2" == *":"* ]]; then
+            _USER_GROUP_ARG="$2"
+        else
+            INSTALL_PATH_FROM_ARGS="$2"
+        fi
+    fi
+    if [ -n "$3" ]; then
+        if [[ "$3" == *":"* ]]; then
+            if [ -n "$_USER_GROUP_ARG" ]; then
+                echo -e "${RED_COLOR}错误：提供了两个用户:用户组参数${RES}" >&2
+                exit 1
+            fi
+            _USER_GROUP_ARG="$3"
+        else
+            if [ -n "$INSTALL_PATH_FROM_ARGS" ]; then
+                echo -e "${RED_COLOR}错误：提供了两个路径参数${RES}" >&2
+                exit 1
+            fi
+            INSTALL_PATH_FROM_ARGS="$3"
+        fi
+    fi
+
+    if [ -n "$_USER_GROUP_ARG" ]; then
+        SYSTEMD_USER=$(echo "$_USER_GROUP_ARG" | cut -d':' -f1)
+        SYSTEMD_GROUP=$(echo "$_USER_GROUP_ARG" | cut -d':' -f2)
+        if [ -z "$SYSTEMD_USER" ]; then SYSTEMD_USER="root"; fi
+        if [ -z "$SYSTEMD_GROUP" ]; then SYSTEMD_GROUP="$SYSTEMD_USER"; fi
+    fi
+}
+
+INSTALL_PATH_FROM_ARGS=""
+_USER_GROUP_ARG=""
+
+if [ "$1" = "install" ]; then
+    parse_install_args "$@"
 fi
 
 # 获取安装路径
@@ -147,10 +191,8 @@ GET_INSTALLED_PATH() {
 }
 
 # 设置安装路径
-if [ ! -n "$2" ]; then
-    INSTALL_PATH=$(get_install_path)
-else
-    INSTALL_PATH=${2%/}
+if [ -n "$INSTALL_PATH_FROM_ARGS" ]; then
+    INSTALL_PATH=${INSTALL_PATH_FROM_ARGS%/}
     if ! [[ $INSTALL_PATH == */openlist ]]; then
         INSTALL_PATH="$INSTALL_PATH/openlist"
     fi
@@ -169,6 +211,8 @@ else
         echo -e "${RED_COLOR}错误：目录 $parent_dir 没有写入权限${RES}"
         exit 1
     fi
+else
+    INSTALL_PATH=$(get_install_path)
 fi
 
 # 如果是更新或卸载操作，使用已安装的路径
@@ -697,13 +741,20 @@ INSTALL() {
 
     chmod +x $INSTALL_PATH/openlist
 
-    # 获取初始账号密码（临时切换目录）
-    cd $INSTALL_PATH
-    ACCOUNT_INFO=$($INSTALL_PATH/openlist admin random 2>&1)
+    # Run as root in a subshell to create data directory and get admin info.
+    ACCOUNT_INFO=$( (cd "$INSTALL_PATH" && ./openlist admin random) 2>&1 )
+
     ADMIN_USER=$(echo "$ACCOUNT_INFO" | grep "username:" | sed 's/.*username://' | tr -d ' ')
     ADMIN_PASS=$(echo "$ACCOUNT_INFO" | grep "password:" | sed 's/.*password://' | tr -d ' ')
-    # 切回原目录
-    cd "$CURRENT_DIR"
+
+    # If a non-root user is specified, change the ownership of the data directory.
+    if [ "$SYSTEMD_USER" != "root" ] && [ "$SYSTEMD_USER" != "0" ]; then
+      echo -e "${GREEN_COLOR}为用户 ${SYSTEMD_USER}:${SYSTEMD_GROUP} 设置目录权限: $INSTALL_PATH ${RES}"
+      if ! chown -R "${SYSTEMD_USER}:${SYSTEMD_GROUP}" "$INSTALL_PATH"; then
+        echo -e "${RED_COLOR}错误：无法设置目录权限，请检查用户 ${SYSTEMD_USER} 或用户组 ${SYSTEMD_GROUP} 是否存在${RES}"
+        exit 1
+      fi
+    fi
   else
     echo -e "${RED_COLOR}安装失败！${RES}"
     rm -rf "$INSTALL_PATH"
@@ -728,20 +779,30 @@ INIT() {
     exit 1
   fi
 
+  local cap_dac_override=""
+  local protect_system="true"
+  if [ "$SYSTEMD_USER" = "root" ] || [ "$SYSTEMD_USER" = "0" ]; then
+    cap_dac_override=" CAP_DAC_OVERRIDE"
+  else
+    protect_system="full"
+  fi
+
   # 创建 systemd 服务文件
   cat >/etc/systemd/system/openlist.service <<EOF
 [Unit]
 Description=OpenList service
-After=network-online.target nss-lookup.target
+After=network-online.target
 
 [Service]
 Type=simple
+User=${SYSTEMD_USER}
+Group=${SYSTEMD_GROUP}
 WorkingDirectory=$INSTALL_PATH
 ExecStart=$INSTALL_PATH/openlist server
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_DAC_OVERRIDE
-AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_DAC_OVERRIDE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE$cap_dac_override
+AmbientCapabilities=CAP_NET_BIND_SERVICE$cap_dac_override
 NoNewPrivileges=true
-ProtectSystem=true
+ProtectSystem=${protect_system}
 ProtectProc=invisible
 ProtectControlGroups=true
 ProtectKernelTunables=true
@@ -749,7 +810,7 @@ ProtectKernelModules=true
 ProtectKernelLogs=true
 ProtectClock=true
 ProtectHostname=true
-PrivateTmp=disconnected
+PrivateTmp=true
 PrivateDevices=true
 RestrictNamespaces=true
 RestrictRealtime=true
@@ -1317,8 +1378,28 @@ SHOW_MENU() {
   
   case "$choice" in
     1)
-      # 安装时重置为默认路径并检查磁盘空间
-      INSTALL_PATH=$(get_install_path)
+      read -p "请输入安装路径 (默认: /opt/openlist): " custom_path
+      if [ -n "$custom_path" ]; then
+          INSTALL_PATH_FROM_ARGS="$custom_path"
+      fi
+      read -p "请输入运行用户:用户组 (uid:gid, 默认: root:root): " custom_user
+      if [ -n "$custom_user" ]; then
+          SYSTEMD_USER=$(echo "$custom_user" | cut -d':' -f1)
+          SYSTEMD_GROUP=$(echo "$custom_user" | cut -d':' -f2)
+          if [ -z "$SYSTEMD_USER" ]; then SYSTEMD_USER="root"; fi
+          if [ -z "$SYSTEMD_GROUP" ]; then SYSTEMD_GROUP="$SYSTEMD_USER"; fi
+      fi
+
+      # re-init install path
+      if [ -n "$INSTALL_PATH_FROM_ARGS" ]; then
+          INSTALL_PATH=${INSTALL_PATH_FROM_ARGS%/}
+          if ! [[ $INSTALL_PATH == */openlist ]]; then
+              INSTALL_PATH="$INSTALL_PATH/openlist"
+          fi
+      else
+          INSTALL_PATH=$(get_install_path)
+      fi
+
       check_disk_space
       CHECK
       INSTALL
@@ -1521,7 +1602,7 @@ elif [ "$1" = "uninstall" ]; then
   UNINSTALL
 else
   echo -e "${RED_COLOR}错误的命令${RES}"
-  echo -e "用法: $0 install [安装路径]    # 安装 OpenList"
+  echo -e "用法: $0 install [安装路径] [用户:用户组] # 安装 OpenList"
   echo -e "     $0 update              # 更新 OpenList"
   echo -e "     $0 uninstall          # 卸载 OpenList"
   echo -e "     $0                    # 显示交互菜单"
