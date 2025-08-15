@@ -732,14 +732,38 @@ INIT() {
   cat >/etc/systemd/system/openlist.service <<EOF
 [Unit]
 Description=OpenList service
-Wants=network.target
-After=network.target network.service
+After=network-online.target nss-lookup.target
 
 [Service]
 Type=simple
 WorkingDirectory=$INSTALL_PATH
 ExecStart=$INSTALL_PATH/openlist server
-KillMode=process
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_DAC_OVERRIDE
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_DAC_OVERRIDE
+NoNewPrivileges=true
+ProtectSystem=true
+ProtectProc=invisible
+ProtectControlGroups=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectClock=true
+ProtectHostname=true
+PrivateTmp=disconnected
+PrivateDevices=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictSUIDSGID=true
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+SystemCallErrorNumber=EPERM
+SystemCallArchitectures=native
+RemoveIPC=true
+IPAddressDeny=multicast
+MemoryDenyWriteExecute=true
+LockPersonality=true
 
 [Install]
 WantedBy=multi-user.target
