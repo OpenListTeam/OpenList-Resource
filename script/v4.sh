@@ -281,7 +281,7 @@ CHECK_PERMISSIONS() {
       # 检查服务用户的父目录权限。
       if [ "$INSTALL_PATH" = "/opt/openlist" ]; then
         # 对于默认路径，确保 /opt 是可遍历的。
-        chmod a+rx /opt
+        chmod a+x /opt
       else
         # 对于自定义路径，检查权限而不更改它们。
         local parent_dir
@@ -295,7 +295,7 @@ CHECK_PERMISSIONS() {
           fi
           if ! sudo -u "$sudo_user" test -x "$parent_dir" 2>/dev/null; then
             echo -e "${RED_COLOR}错误：用户 '$SYSTEMD_USER' 没有权限访问安装路径的父目录 '$parent_dir'。${RES}" >&2
-            echo -e "${YELLOW_COLOR}请为该用户授予 '$parent_dir' 目录及其所有上级目录的执行和读取权限 (e.g., chmod a+rx '$parent_dir') 后重试。${RES}" >&2
+            echo -e "${YELLOW_COLOR}请为该用户授予 '$parent_dir' 目录及其所有上级目录的执行权限 (e.g., chmod a+x '$parent_dir') 后重试。${RES}" >&2
             # 触发安装失败
             echo -e "${RED_COLOR}安装失败！${RES}"
             rm -rf "$INSTALL_PATH"
