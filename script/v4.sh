@@ -423,14 +423,16 @@ docker_install() {
     echo -e "${GREEN_COLOR}正在拉取镜像并创建Container...${RES}"
 
     # 运行 Docker
+    local CURRENT_UID=$(id -u)
+    local CURRENT_GID=$(id -g)
+    if [ ! -d /opt/openlist/data ]; then sudo mkdir -p /opt/openlist/data; fi
+    sudo chown -R ${CURRENT_UID}:${CURRENT_GID} /opt/openlist/data
     if docker run -d \
         --name ${DOCKER_CONTAINER_NAME} \
         --restart=unless-stopped \
         -p ${DOCKER_PORT}:5244 \
         -v /opt/openlist/data:/opt/openlist/data \
-        -e PUID=0 \
-        -e PGID=0 \
-        -e UMASK=022 \
+        --user ${CURRENT_UID}:${CURRENT_GID} \
         openlistteam/openlist:${DOCKER_IMAGE_TAG}; then
 
         echo -e "${GREEN_COLOR}Docker Container创建成功！${RES}"
