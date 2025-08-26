@@ -94,7 +94,36 @@ parse_install_args() {
         SYSTEMD_GROUP=$(echo "$_USER_GROUP_ARG" | cut -d':' -f2)
         if [ -z "$SYSTEMD_USER" ]; then SYSTEMD_USER="root"; fi
         if [ -z "$SYSTEMD_GROUP" ]; then SYSTEMD_GROUP="$SYSTEMD_USER"; fi
+
+        if ! check_user_group "$SYSTEMD_USER" "$SYSTEMD_GROUP"; then
+            exit 1
+        fi
     fi
+}
+
+# 检查用户和用户组是否存在
+check_user_group() {
+    local user="$1"
+    local group="$2"
+    local has_error=0
+
+    # 检查用户是否存在
+    if ! getent passwd "$user" &>/dev/null; then
+        echo -e "${RED_COLOR}错误：用户 '$user' 不存在。${RES}" >&2
+        has_error=1
+    fi
+
+    # 检查用户组是否存在
+    if ! getent group "$group" &>/dev/null; then
+        echo -e "${RED_COLOR}错误：用户组 '$group' 不存在。${RES}" >&2
+        has_error=1
+    fi
+
+    if [ "$has_error" -eq 1 ]; then
+        return 1
+    fi
+
+    return 0
 }
 
 INSTALL_PATH_FROM_ARGS=""
@@ -956,7 +985,7 @@ UPDATE() {
         GH_DOWNLOAD_URL="${GH_PROXY}https://github.com/OpenListTeam/OpenList/releases/latest/download"
         echo -e "${GREEN_COLOR}已使用代理地址: $GH_PROXY${RES}"
     else
-        # 果不需要代理，直接使用默认链接
+        # 如果不需要代理，直接使用默认链接
         GH_DOWNLOAD_URL="https://github.com/OpenListTeam/OpenList/releases/latest/download"
         echo -e "${GREEN_COLOR}使用默认 GitHub 地址进行下载${RES}"
     fi
@@ -1437,6 +1466,10 @@ SHOW_MENU() {
           SYSTEMD_GROUP=$(echo "$custom_user" | cut -d':' -f2)
           if [ -z "$SYSTEMD_USER" ]; then SYSTEMD_USER="root"; fi
           if [ -z "$SYSTEMD_GROUP" ]; then SYSTEMD_GROUP="$SYSTEMD_USER"; fi
+
+          if ! check_user_group "$SYSTEMD_USER" "$SYSTEMD_GROUP"; then
+              return 1
+          fi
       fi
 
       # re-init install path
