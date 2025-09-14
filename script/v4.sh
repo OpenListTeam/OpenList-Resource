@@ -32,6 +32,10 @@ CYAN_COLOR='\e[1;36m'
 PURPLE_COLOR='\e[1;35m'
 RES='\e[0m'
 
+# systemd 服务用户, 默认为 root
+SYSTEMD_USER="root"
+SYSTEMD_GROUP="root"
+
 # CPU架构定义
 declare -A ARCH_MAP=(
     ["x86_64"]="amd64"
@@ -58,6 +62,75 @@ if [ "$(id -u)" != "0" ]; then
     }
     # 使用sudo重新执行脚本
     exec sudo "bash" "$0" "$@"
+fi
+
+# 解析安装参数
+parse_install_args() {
+    if [ -n "$2" ]; then
+        if [[ "$2" == *":"* ]]; then
+            _USER_GROUP_ARG="$2"
+        else
+            INSTALL_PATH_FROM_ARGS="$2"
+        fi
+    fi
+    if [ -n "$3" ]; then
+        if [[ "$3" == *":"* ]]; then
+            if [ -n "$_USER_GROUP_ARG" ]; then
+                echo -e "${RED_COLOR}错误：提供了两个用户:用户组参数${RES}" >&2
+                exit 1
+            fi
+            _USER_GROUP_ARG="$3"
+        else
+            if [ -n "$INSTALL_PATH_FROM_ARGS" ]; then
+                echo -e "${RED_COLOR}错误：提供了两个路径参数${RES}" >&2
+                exit 1
+            fi
+            INSTALL_PATH_FROM_ARGS="$3"
+        fi
+    fi
+
+    if [ -n "$_USER_GROUP_ARG" ]; then
+        SYSTEMD_USER=$(echo "$_USER_GROUP_ARG" | cut -d':' -f1)
+        SYSTEMD_GROUP=$(echo "$_USER_GROUP_ARG" | cut -d':' -f2)
+        if [ -z "$SYSTEMD_USER" ]; then SYSTEMD_USER="root"; fi
+        if [ -z "$SYSTEMD_GROUP" ]; then SYSTEMD_GROUP="$SYSTEMD_USER"; fi
+
+        if ! check_user_group "$SYSTEMD_USER" "$SYSTEMD_GROUP"; then
+            exit 1
+        fi
+    fi
+}
+
+# 检查用户和用户组是否存在
+check_user_group() {
+    local user="$1"
+    local group="$2"
+    local has_error=0
+
+    # 检查用户是否存在
+    if ! getent passwd "$user" &>/dev/null; then
+        echo -e "${RED_COLOR}错误：用户 '$user' 不存在。${RES}" >&2
+        has_error=1
+    fi
+
+    # 检查用户组是否存在
+    if ! getent group "$group" &>/dev/null; then
+        echo -e "${RED_COLOR}错误：用户组 '$group' 不存在。${RES}" >&2
+        has_error=1
+    fi
+
+    if [ "$has_error" -eq 1 ]; then
+        return 1
+    fi
+
+    return 0
+}
+
+INSTALL_PATH_FROM_ARGS=""
+_USER_GROUP_ARG=""
+
+if [ "$1" = "install" ]; then
+    parse_install_args "$@"
 fi
 
 # 获取安装路径
@@ -111,7 +184,6 @@ fi
 # GitHub 相关配置
 GITHUB_REPO="OpenListTeam/OpenList"
 VERSION_TAG="beta"
-VERSION_FILE="/opt/openlist/.version"
 GH_DOWNLOAD_URL="${GH_PROXY}https://github.com/OpenListTeam/OpenList/releases/latest/download"
 
 # Docker 配置
@@ -147,10 +219,8 @@ GET_INSTALLED_PATH() {
 }
 
 # 设置安装路径
-if [ ! -n "$2" ]; then
-    INSTALL_PATH=$(get_install_path)
-else
-    INSTALL_PATH=${2%/}
+if [ -n "$INSTALL_PATH_FROM_ARGS" ]; then
+    INSTALL_PATH=${INSTALL_PATH_FROM_ARGS%/}
     if ! [[ $INSTALL_PATH == */openlist ]]; then
         INSTALL_PATH="$INSTALL_PATH/openlist"
     fi
@@ -169,6 +239,8 @@ else
         echo -e "${RED_COLOR}错误：目录 $parent_dir 没有写入权限${RES}"
         exit 1
     fi
+else
+    INSTALL_PATH=$(get_install_path)
 fi
 
 # 如果是更新或卸载操作，使用已安装的路径
@@ -229,6 +301,40 @@ CHECK() {
   fi
 
   echo -e "${GREEN_COLOR}安装目录准备就绪：$INSTALL_PATH${RES}"
+}
+
+CHECK_PERMISSIONS() {
+    # 如果指定了非 root 用户，首先检查是否可以访问该路径。
+    if [ "$SYSTEMD_USER" != "root" ] && [ "$SYSTEMD_USER" != "0" ]; then
+      echo -e "${BLUE_COLOR}为用户 ${SYSTEMD_USER} 检查路径权限...${RES}"
+      # 检查服务用户的父目录权限。
+      if [ "$INSTALL_PATH" = "/opt/openlist" ]; then
+        # 对于默认路径，确保 /opt 是可遍历的。
+        chmod a+x /opt
+      else
+        # 对于自定义路径，检查权限而不更改它们。
+        local parent_dir
+        parent_dir=$(dirname "$INSTALL_PATH")
+        while [ "$parent_dir" != "/" ] && [ -n "$parent_dir" ]; do
+          local sudo_user
+          if [[ "$SYSTEMD_USER" =~ ^[0-9]+$ ]]; then
+            sudo_user="#$SYSTEMD_USER"
+          else
+            sudo_user="$SYSTEMD_USER"
+          fi
+          if ! sudo -u "$sudo_user" test -x "$parent_dir" 2>/dev/null; then
+            echo -e "${RED_COLOR}错误：用户 '$SYSTEMD_USER' 没有权限访问安装路径的父目录 '$parent_dir'。${RES}" >&2
+            echo -e "${YELLOW_COLOR}请为该用户授予 '$parent_dir' 目录及其所有上级目录的执行权限 (e.g., chmod a+x '$parent_dir') 后重试。${RES}" >&2
+            # 触发安装失败
+            echo -e "${RED_COLOR}安装失败！${RES}"
+            rm -rf "$INSTALL_PATH"
+            mkdir -p "$INSTALL_PATH"
+            exit 1
+          fi
+          parent_dir=$(dirname "$parent_dir")
+        done
+      fi
+    fi
 }
 
 # 添加全局变量存储账号密码
@@ -516,7 +622,7 @@ docker_password() {
 }
 
 # Update
-# 设置自动Update
+# 设置自动 Update
 setup_auto_update() {
     echo -e "${GREEN_COLOR}设置定时自动更新${RES}"
 
@@ -581,9 +687,9 @@ check_system_status() {
         fi
 
         # 显示版本信息
-        if [ -f "$VERSION_FILE" ]; then
-            local version=$(head -n1 "$VERSION_FILE" 2>/dev/null)
-            local install_time=$(tail -n1 "$VERSION_FILE" 2>/dev/null)
+        if [ -f "$INSTALL_PATH/.version" ]; then
+            local version=$(head -n1 "$INSTALL_PATH/.version" 2>/dev/null)
+            local install_time=$(tail -n1 "$INSTALL_PATH/.version" 2>/dev/null)
             echo -e "${GREEN_COLOR}● 当前版本：${RES}$version"
             echo -e "${GREEN_COLOR}● 安装时间：${RES}$install_time"
         else
@@ -699,13 +805,36 @@ INSTALL() {
 
     chmod +x $INSTALL_PATH/openlist
 
-    # 获取初始账号密码（临时切换目录）
-    cd $INSTALL_PATH
-    ACCOUNT_INFO=$($INSTALL_PATH/openlist admin random 2>&1)
+    # 以 root 身份运行获取管理员信息。
+    echo -e "${GREEN_COLOR}生成管理员账号...${RES}"
+    ACCOUNT_INFO=$( (cd "$INSTALL_PATH" && ./openlist admin random) 2>&1 )
+
     ADMIN_USER=$(echo "$ACCOUNT_INFO" | grep "username:" | sed 's/.*username://' | tr -d ' ')
     ADMIN_PASS=$(echo "$ACCOUNT_INFO" | grep "password:" | sed 's/.*password://' | tr -d ' ')
-    # 切回原目录
-    cd "$CURRENT_DIR"
+
+    # 检查管理员信息是否成功生成
+    if [ -z "$ADMIN_PASS" ]; then
+        echo -e "${RED_COLOR}错误：生成管理员账号失败。输出如下：${RES}" >&2
+        echo "$ACCOUNT_INFO" >&2
+        # 触发安装失败程序
+        echo -e "${RED_COLOR}安装失败！${RES}"
+        rm -rf "$INSTALL_PATH"
+        mkdir -p "$INSTALL_PATH"
+        exit 1
+    fi
+
+    # 如果指定了非 root 用户，现在更改目录的所有权。
+    if [ "$SYSTEMD_USER" != "root" ] && [ "$SYSTEMD_USER" != "0" ]; then
+      echo -e "${GREEN_COLOR}为用户 ${SYSTEMD_USER}:${SYSTEMD_GROUP} 设置目录权限: $INSTALL_PATH ${RES}"
+      if ! chown -R "${SYSTEMD_USER}:${SYSTEMD_GROUP}" "$INSTALL_PATH"; then
+        echo -e "${RED_COLOR}错误：无法设置目录权限，请检查用户 ${SYSTEMD_USER} 或用户组 ${SYSTEMD_GROUP} 是否存在${RES}"
+        # 触发安装失败
+        echo -e "${RED_COLOR}安装失败！${RES}"
+        rm -rf "$INSTALL_PATH"
+        mkdir -p "$INSTALL_PATH"
+        exit 1
+      fi
+    fi
   else
     echo -e "${RED_COLOR}安装失败！${RES}"
     rm -rf "$INSTALL_PATH"
@@ -716,8 +845,8 @@ INSTALL() {
   # 获取并记录真实版本信息
   echo -e "${GREEN_COLOR}获取版本信息...${RES}"
   REAL_VERSION=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null || echo "$VERSION_TAG")
-  echo "$REAL_VERSION" > "$VERSION_FILE"
-  echo "$(date '+%Y-%m-%d %H:%M:%S')" >> "$VERSION_FILE"
+  echo "$REAL_VERSION" > "$INSTALL_PATH/.version"
+  echo "$(date '+%Y-%m-%d %H:%M:%S')" >> "$INSTALL_PATH/.version"
 
   # 清理临时文件
   rm -f /tmp/openlist*
@@ -730,18 +859,52 @@ INIT() {
     exit 1
   fi
 
+  local cap_dac_override=""
+  local protect_system="true"
+  if [ "$SYSTEMD_USER" = "root" ] || [ "$SYSTEMD_USER" = "0" ]; then
+    cap_dac_override=" CAP_DAC_OVERRIDE"
+  else
+    protect_system="full"
+  fi
+
   # 创建 systemd 服务文件
   cat >/etc/systemd/system/openlist.service <<EOF
 [Unit]
 Description=OpenList service
-Wants=network.target
-After=network.target network.service
+After=network-online.target
 
 [Service]
 Type=simple
+User=${SYSTEMD_USER}
+Group=${SYSTEMD_GROUP}
 WorkingDirectory=$INSTALL_PATH
 ExecStart=$INSTALL_PATH/openlist server
-KillMode=process
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE$cap_dac_override
+AmbientCapabilities=CAP_NET_BIND_SERVICE$cap_dac_override
+NoNewPrivileges=true
+ProtectSystem=${protect_system}
+ProtectProc=invisible
+ProtectControlGroups=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectClock=true
+ProtectHostname=true
+PrivateTmp=true
+PrivateDevices=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictSUIDSGID=true
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+SystemCallErrorNumber=EPERM
+SystemCallArchitectures=native
+RemoveIPC=true
+IPAddressDeny=multicast
+MemoryDenyWriteExecute=true
+LockPersonality=true
 
 [Install]
 WantedBy=multi-user.target
@@ -752,7 +915,7 @@ EOF
 }
 
 SUCCESS() {
-  clear  # 只在开始时清屏一次
+  clear # 只在开始时清屏一次
   print_line() {
     local text="$1"
     local width=50
@@ -767,8 +930,8 @@ SUCCESS() {
 
   # 获取版本信息
   local version_info="UNKNOWN"
-  if [ -f "$VERSION_FILE" ]; then
-    version_info=$(head -n1 "$VERSION_FILE" 2>/dev/null)
+  if [ -f "$INSTALL_PATH/.version" ]; then
+    version_info=$(head -n1 "$INSTALL_PATH/.version" 2>/dev/null)
   elif [ ! -z "$REAL_VERSION" ]; then
     version_info="$REAL_VERSION"
   fi
@@ -788,7 +951,7 @@ SUCCESS() {
     print_line "默认账号：$ADMIN_USER"
     print_line "初始密码：$ADMIN_PASS"
   fi
-  echo -e "└────────────────────────────────────────────────────┘"
+  echo -e "└───────────────────────────────────────────────────┘"
   
   # 安装命令行工具
   if ! INSTALL_CLI; then
@@ -801,7 +964,7 @@ SUCCESS() {
   
   echo -e "\n${YELLOW_COLOR}温馨提示：如果端口无法访问，请检查服务器安全组、防火墙和服务状态${RES}"
   echo
-  exit 0  # 直接退出，不再返回菜单
+  exit 0 # 直接退出，不再返回菜单
 }
 
 UPDATE() {
@@ -888,8 +1051,8 @@ UPDATE() {
     # 获取并更新真实版本信息
     echo -e "${GREEN_COLOR}获取版本信息...${RES}"
     REAL_VERSION=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null || echo "$VERSION_TAG")
-    echo "$REAL_VERSION" > "$VERSION_FILE"
-    echo "$(date '+%Y-%m-%d %H:%M:%S')" >> "$VERSION_FILE"
+    echo "$REAL_VERSION" > "$INSTALL_PATH/.version"
+    echo "$(date '+%Y-%m-%d %H:%M:%S')" >> "$INSTALL_PATH/.version"
 
     # 清理临时文件
     rm -f /tmp/openlist.tar.gz /tmp/openlist.bak
@@ -903,8 +1066,8 @@ UPDATE() {
 
     # 获取并显示版本信息
     local version_info="未知"
-    if [ -f "$VERSION_FILE" ]; then
-        version_info=$(head -n1 "$VERSION_FILE" 2>/dev/null)
+    if [ -f "$INSTALL_PATH/.version" ]; then
+        version_info=$(head -n1 "$INSTALL_PATH/.version" 2>/dev/null)
     elif [ ! -z "$REAL_VERSION" ]; then
         version_info="$REAL_VERSION"
     fi
@@ -1295,10 +1458,35 @@ SHOW_MENU() {
   
   case "$choice" in
     1)
-      # 安装时重置为默认路径并检查磁盘空间
-      INSTALL_PATH=$(get_install_path)
+      read -p "请输入安装路径 (按 Enter 键使用默认路径: /opt/openlist): " custom_path
+      if [ -n "$custom_path" ]; then
+          INSTALL_PATH_FROM_ARGS="$custom_path"
+      fi
+      read -p "请输入运行用户:用户组 (uid:gid, 按 Enter 键使用默认用户用户组: root:root): " custom_user
+      if [ -n "$custom_user" ]; then
+          SYSTEMD_USER=$(echo "$custom_user" | cut -d':' -f1)
+          SYSTEMD_GROUP=$(echo "$custom_user" | cut -d':' -f2)
+          if [ -z "$SYSTEMD_USER" ]; then SYSTEMD_USER="root"; fi
+          if [ -z "$SYSTEMD_GROUP" ]; then SYSTEMD_GROUP="$SYSTEMD_USER"; fi
+
+          if ! check_user_group "$SYSTEMD_USER" "$SYSTEMD_GROUP"; then
+              return 1
+          fi
+      fi
+
+      # re-init install path
+      if [ -n "$INSTALL_PATH_FROM_ARGS" ]; then
+          INSTALL_PATH=${INSTALL_PATH_FROM_ARGS%/}
+          if ! [[ $INSTALL_PATH == */openlist ]]; then
+              INSTALL_PATH="$INSTALL_PATH/openlist"
+          fi
+      else
+          INSTALL_PATH=$(get_install_path)
+      fi
+
       check_disk_space
       CHECK
+      CHECK_PERMISSIONS
       INSTALL
       INIT
       SUCCESS
@@ -1479,6 +1667,7 @@ if [ $# -eq 0 ]; then
 elif [ "$1" = "install" ]; then
   check_disk_space
   CHECK
+  CHECK_PERMISSIONS
   INSTALL
   INIT
   SUCCESS
@@ -1499,7 +1688,7 @@ elif [ "$1" = "uninstall" ]; then
   UNINSTALL
 else
   echo -e "${RED_COLOR}错误的命令${RES}"
-  echo -e "用法: $0 install [安装路径]    # 安装 OpenList"
+  echo -e "用法: $0 install [安装路径] [用户:用户组] # 安装 OpenList"
   echo -e "     $0 update              # 更新 OpenList"
   echo -e "     $0 uninstall          # 卸载 OpenList"
   echo -e "     $0                    # 显示交互菜单"
