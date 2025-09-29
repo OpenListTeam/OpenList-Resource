@@ -3,8 +3,8 @@
 #
 # OpenList Manage Script
 #
-# Version: 1.3.2
-# Last Updated: 2025-07-25
+# Version: 1.3.3
+# Last Updated: 2025-09-29
 #
 # Description:
 #   A management script for OpenList (https://github.com/OpenListTeam/OpenList)
@@ -661,22 +661,27 @@ INSTALL() {
   # 保存当前目录
   CURRENT_DIR=$(pwd)
   
-    # 询问是否使用代理
-    echo -e "${GREEN_COLOR}是否使用 GitHub 代理？（默认无代理）${RES}"
-    echo -e "${GREEN_COLOR}代理地址必须为 https 开头，斜杠 / 结尾 ${RES}"
-    echo -e "${GREEN_COLOR}例如：https://ghproxy.net/ ${RES}"
-    read -p "请输入代理地址或直接按 Enter 继续: " proxy_input
+  # 询问是否使用代理
+  echo -e "${GREEN_COLOR}是否使用 GitHub 代理？（默认无代理）${RES}"
+  echo -e "${GREEN_COLOR}代理地址必须为 https 开头，斜杠 / 结尾 ${RES}"
+  echo -e "${GREEN_COLOR}例如：https://ghproxy.net/ ${RES}"
+  read -p "请输入代理地址或直接按 Enter 继续: " proxy_input
 
   # 如果用户输入了代理地址，则使用代理拼接下载链接
   if [ -n "$proxy_input" ]; then
     GH_PROXY="$proxy_input"
-    GH_DOWNLOAD_URL="${GH_PROXY}https://github.com/OpenListTeam/OpenList/releases/latest/download"
+    GH_DOWNLOAD_URL="${GH_PROXY}https://github.com/OpenListTeam/OpenList/releases/download"
     echo -e "${GREEN_COLOR}已使用代理地址: $GH_PROXY${RES}"
   else
     # 如果不需要代理，直接使用默认链接
-    GH_DOWNLOAD_URL="https://github.com/OpenListTeam/OpenList/releases/latest/download"
+    GH_DOWNLOAD_URL="https://github.com/OpenListTeam/OpenList/releases/download"
     echo -e "${GREEN_COLOR}使用默认 GitHub 地址进行下载${RES}"
   fi
+
+  # 获取版本号
+  echo -e "${GREEN_COLOR}获取版本信息...${RES}"
+  REAL_VERSION=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null || echo "$VERSION_TAG")
+  GH_DOWNLOAD_URL="${GH_DOWNLOAD_URL}/${REAL_VERSION}"
 
   # 下载 OpenList 程序
   echo -e "\r\n${GREEN_COLOR}下载 OpenList ...${RES}"
@@ -713,9 +718,7 @@ INSTALL() {
     exit 1
   fi
 
-  # 获取并记录真实版本信息
-  echo -e "${GREEN_COLOR}获取版本信息...${RES}"
-  REAL_VERSION=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null || echo "$VERSION_TAG")
+  # 记录真实版本信息
   echo "$REAL_VERSION" > "$VERSION_FILE"
   echo "$(date '+%Y-%m-%d %H:%M:%S')" >> "$VERSION_FILE"
 
@@ -821,13 +824,18 @@ UPDATE() {
     # 如果用户输入了代理地址，则使用代理拼接下载链接
     if [ -n "$proxy_input" ]; then
         GH_PROXY="$proxy_input"
-        GH_DOWNLOAD_URL="${GH_PROXY}https://github.com/OpenListTeam/OpenList/releases/latest/download"
+        GH_DOWNLOAD_URL="${GH_PROXY}https://github.com/OpenListTeam/OpenList/releases/download"
         echo -e "${GREEN_COLOR}已使用代理地址: $GH_PROXY${RES}"
     else
         # 如果不需要代理，直接使用默认链接
-        GH_DOWNLOAD_URL="https://github.com/OpenListTeam/OpenList/releases/latest/download"
+        GH_DOWNLOAD_URL="https://github.com/OpenListTeam/OpenList/releases/download"
         echo -e "${GREEN_COLOR}使用默认 GitHub 地址进行下载${RES}"
     fi
+
+    # 获取真实版本信息
+    echo -e "${GREEN_COLOR}获取版本信息...${RES}"
+    REAL_VERSION=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null || echo "$VERSION_TAG")
+    GH_DOWNLOAD_URL="${GH_DOWNLOAD_URL}/${REAL_VERSION}"
 
     # 停止 OpenList 服务
     echo -e "${GREEN_COLOR}停止 OpenList 进程${RES}\r\n"
@@ -885,9 +893,7 @@ UPDATE() {
         exit 1
     fi
 
-    # 获取并更新真实版本信息
-    echo -e "${GREEN_COLOR}获取版本信息...${RES}"
-    REAL_VERSION=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null || echo "$VERSION_TAG")
+    # 更新真实版本信息
     echo "$REAL_VERSION" > "$VERSION_FILE"
     echo "$(date '+%Y-%m-%d %H:%M:%S')" >> "$VERSION_FILE"
 
