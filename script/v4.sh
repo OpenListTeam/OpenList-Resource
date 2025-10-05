@@ -890,13 +890,13 @@ UPDATE() {
     # 版本对比，支持强制更新
     if [ -n "$CURRENT_VERSION" ] && [ -n "$REAL_VERSION" ] && [ "$CURRENT_VERSION" = "$REAL_VERSION" ]; then
         echo -e "${YELLOW_COLOR}当前检测到最新版本为 ${RES}${CURRENT_VERSION}${YELLOW_COLOR}，与本地一致。${RES}"
-        read -r -p "是否强制重新下载并更新？[y/N]: " force_update
+        read -p "是否强制重新下载并更新？[y/N]: " force_update
         force_update=${force_update:-N}
-        if [[ ! "$force_update" =~ ^([yY][eE][sS]?|[yY])$ ]]; then
-            echo -e "${GREEN_COLOR}已取消更新，维持当前版本${RES}"
-            return 0
-        fi
-        echo -e "${GREEN_COLOR}将按照指示强制更新${RES}"
+        case "${force_update,,}" in  # 转换为小写以统一处理
+            y)  echo -e "${GREEN_COLOR}将按照指示强制更新${RES}";;
+            *)  echo -e "${GREEN_COLOR}已取消更新，维持当前版本${RES}"
+                return 0;;
+        esac
     fi
 
     GH_DOWNLOAD_URL="${GH_DOWNLOAD_URL}/${REAL_VERSION}"
