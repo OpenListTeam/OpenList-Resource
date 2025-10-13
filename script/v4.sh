@@ -670,28 +670,13 @@ INSTALL() {
   # 如果用户输入了代理地址，则使用代理拼接下载链接
   if [ -n "$proxy_input" ]; then
     GH_PROXY="$proxy_input"
-    GH_DOWNLOAD_URL="${GH_PROXY}https://github.com/OpenListTeam/OpenList/releases/download"
+    GH_DOWNLOAD_URL="${GH_PROXY}https://github.com/OpenListTeam/OpenList/releases/latest/download"
     echo -e "${GREEN_COLOR}已使用代理地址: $GH_PROXY${RES}"
   else
     # 如果不需要代理，直接使用默认链接
-    GH_PROXY=""
-    GH_DOWNLOAD_URL="https://github.com/OpenListTeam/OpenList/releases/download"
+    GH_DOWNLOAD_URL="https://github.com/OpenListTeam/OpenList/releases/latest/download"
     echo -e "${GREEN_COLOR}使用默认 GitHub 地址进行下载${RES}"
   fi
-
-  # 获取版本号
-  echo -e "${GREEN_COLOR}获取版本信息...${RES}"
-  REAL_VERSION=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null | grep . || echo "$VERSION_TAG")
-
-  if [ "$REAL_VERSION" = "beta" ]; then
-    # 网络问题，获取失败，默认使用latest下载地址
-    echo -e "${YELLOW_COLOR}提示：获取最新版本信息失败，将默认安装latest版本！${RES}"
-    GH_DOWNLOAD_URL="${GH_PROXY}https://github.com/OpenListTeam/OpenList/releases/latest/download"
-  else
-    GH_DOWNLOAD_URL="${GH_DOWNLOAD_URL}/${REAL_VERSION}"
-  fi
-  
-
 
   # 下载 OpenList 程序
   echo -e "\r\n${GREEN_COLOR}下载 OpenList ...${RES}"
@@ -730,7 +715,7 @@ INSTALL() {
 
   # 记录真实版本信息
   VERSION_INFO=$($INSTALL_PATH/openlist version 2>&1)
-  REAL_VERSION=$(echo "$VERSION_INFO" | grep "^Version:" | sed 's/Version://' | tr -d ' ' | grep . || echo "$REAL_VERSION")
+  REAL_VERSION=$(echo "$VERSION_INFO" | grep "^Version:" | sed 's/Version://' | tr -d ' ' | grep . || echo "$VERSION_TAG")
   echo "$REAL_VERSION" > "$VERSION_FILE"
   echo "$(date '+%Y-%m-%d %H:%M:%S')" >> "$VERSION_FILE"
 
