@@ -554,9 +554,9 @@ setup_auto_update() {
             # 构造要写入 crontab 的命令行，保留 GH_PROXY 环境变量（如果用户设置）
             if [ -n "$cron_gh_proxy" ]; then
                 # 将 GH_PROXY 导出到 crontab 环境并把输出写入日志文件
-                cron_cmd="GH_PROXY=$cron_gh_proxy $SCRIPT_PATH update >> /var/log/openlist_update.log 2>&1"
+                cron_cmd="GH_PROXY=$cron_gh_proxy $SCRIPT_PATH update >> openlist_update.log 2>&1"
             else
-                cron_cmd="$SCRIPT_PATH update >> /var/log/openlist_update.log 2>&1"
+                cron_cmd="$SCRIPT_PATH update >> openlist_update.log 2>&1"
             fi
 
             # 添加到 crontab（先移除旧条目）
