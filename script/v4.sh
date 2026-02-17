@@ -3,8 +3,8 @@
 #
 # OpenList Manage Script
 #
-# Version: 1.3.3
-# Last Updated: 2025-09-29
+# Version: 1.3.4
+# Last Updated: 2026-02-17
 #
 # Description:
 #   A management script for OpenList (https://github.com/OpenListTeam/OpenList)
@@ -1137,7 +1137,7 @@ RESET_PASSWORD() {
             if [ -f "$INSTALL_PATH/data/config.json" ]; then
                 echo -e "\n${GREEN_COLOR}配置文件信息：${RES}"
                 if command -v jq >/dev/null 2>&1; then
-                    jq -r '.scheme.address + ":" + (.scheme.port|tostring)' "$INSTALL_PATH/data/config.json" 2>/dev/null | head -1 | sed 's/^/访问地址: http:\/\//'
+                    jq -r '.scheme.address + ":" + (.scheme.http_port|tostring)' "$INSTALL_PATH/data/config.json" 2>/dev/null | head -1 | sed 's/^/访问地址: http:\/\//'
                 else
                     echo "配置文件: $INSTALL_PATH/data/config.json"
                 fi
