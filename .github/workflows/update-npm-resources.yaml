@@ -145,13 +145,18 @@ jobs:
           update_package "@ruffle-rs/ruffle"    "ruffle"       "full"
 
           # Save update summary for PR body
-          echo -e "$UPDATES" > /tmp/update-summary.txt
+          printf '%b\n' "$UPDATES" > /tmp/update-summary.txt
 
       - name: Check for changes
         id: changes
         run: |
           if [[ -n $(git status --porcelain) ]]; then
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            {
+              echo 'summary<<EOF'
+              cat /tmp/update-summary.txt
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
           else
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
             echo "No updates found."
@@ -172,7 +177,7 @@ jobs:
             This PR was automatically created by the **Update NPM Resources** workflow.
 
             ### Updated packages
-            ${{ steps.changes.outputs.has_changes == 'true' && '_(see commit diff for details)_' || '' }}
+            ${{ steps.changes.outputs.summary }}
 
             ---
             _This PR was auto-generated. Please review the changes before merging._
