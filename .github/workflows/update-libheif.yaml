@@ -17,7 +17,6 @@ jobs:
       npm_package: libheif-js
       target_dir: libheif
       branch_name: auto-update/libheif
-      workflow_display_name: 'Update: libheif'
       extract_script: |
         # Replace directory with libheif-wasm/* files (wasm bundle + types)
         find "$TARGET_DIR" -mindepth 1 -exec rm -rf {} + 2>/dev/null || true

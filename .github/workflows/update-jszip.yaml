@@ -17,7 +17,6 @@ jobs:
       npm_package: jszip
       target_dir: jszip
       branch_name: auto-update/jszip
-      workflow_display_name: 'Update: jszip'
       extract_script: |
         mkdir -p "$TARGET_DIR"
         # Only copy the minified bundle

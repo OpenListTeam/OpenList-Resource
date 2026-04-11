@@ -17,7 +17,6 @@ jobs:
       npm_package: exceljs
       target_dir: exceljs
       branch_name: auto-update/exceljs
-      workflow_display_name: 'Update: exceljs'
       extract_script: |
         mkdir -p "$TARGET_DIR"
         # Only copy the minified bundle

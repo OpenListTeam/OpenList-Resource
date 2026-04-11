@@ -17,7 +17,6 @@ jobs:
       npm_package: docx-preview
       target_dir: docxjs
       branch_name: auto-update/docxjs
-      workflow_display_name: 'Update: docxjs'
       extract_script: |
         # Full package copy — replace entire directory contents
         find "$TARGET_DIR" -mindepth 1 -exec rm -rf {} + 2>/dev/null || true

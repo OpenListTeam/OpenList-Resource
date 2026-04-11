@@ -17,7 +17,6 @@ jobs:
       npm_package: libass-wasm
       target_dir: libass-wasm
       branch_name: auto-update/libass-wasm
-      workflow_display_name: 'Update: libass-wasm'
       extract_script: |
         # Replace directory with dist/js/* files (worker scripts + wasm)
         find "$TARGET_DIR" -mindepth 1 -exec rm -rf {} + 2>/dev/null || true
