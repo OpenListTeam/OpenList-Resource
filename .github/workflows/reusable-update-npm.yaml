@@ -6,6 +6,10 @@
 
 name: Reusable NPM Update
 
+permissions:
+  contents: write
+  pull-requests: write
+
 on:
   workflow_call:
     inputs:
