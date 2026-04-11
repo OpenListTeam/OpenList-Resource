@@ -39,15 +39,15 @@ If you want to control the Ruffle player, you may use our Javascript API.
 
 ```html
 <script>
-  window.RufflePlayer = window.RufflePlayer || {}
+    window.RufflePlayer = window.RufflePlayer || {};
 
-  window.addEventListener("DOMContentLoaded", () => {
-    let ruffle = window.RufflePlayer.newest()
-    let player = ruffle.createPlayer()
-    let container = document.getElementById("container")
-    container.appendChild(player)
-    player.ruffle().load("movie.swf")
-  })
+    window.addEventListener("DOMContentLoaded", () => {
+        let ruffle = window.RufflePlayer.newest();
+        let player = ruffle.createPlayer();
+        let container = document.getElementById("container");
+        container.appendChild(player);
+        player.ruffle().load("movie.swf");
+    });
 </script>
 <script src="path/to/ruffle/ruffle.js"></script>
 ```
