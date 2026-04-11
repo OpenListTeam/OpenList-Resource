@@ -8,6 +8,7 @@ name: Reusable NPM Update
 
 permissions:
   contents: write
+  issues: write
   pull-requests: write
 
 on:
@@ -84,12 +85,30 @@ jobs:
         run: |
           find "$TARGET_DIR" -name 'index.html' -exec rm -f {} + 2>/dev/null || true
 
+      - name: Import GPG key
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: crazy-max/ghaction-import-gpg@v7
+        with:
+          gpg_private_key: ${{ secrets.BOT_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.BOT_GPG_PASSPHRASE }}
+          git_config_global: true
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
+      - name: Setup CI Bot
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config --global user.name "${{ secrets.BOT_USERNAME }}"
+          git config --global user.email "${{ secrets.BOT_USEREMAIL }}"
+
       - name: Create Pull Request
         if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'chore: update ${{ inputs.npm_package }} to ${{ steps.fetch.outputs.version }}'
+          author: '${{ secrets.BOT_USERNAME }} <${{ secrets.BOT_USEREMAIL }}>'
+          committer: '${{ secrets.BOT_USERNAME }} <${{ secrets.BOT_USEREMAIL }}>'
           branch: ${{ inputs.branch_name }}
           delete-branch: true
           title: 'chore: update `${{ inputs.npm_package }}` to ${{ steps.fetch.outputs.version }}'
