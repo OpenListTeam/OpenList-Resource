@@ -73,10 +73,6 @@ jobs:
           set -euo pipefail
           ${{ inputs.extract_script }}
 
-      - name: Remove index.html for GenerateDirectoryTree regeneration
-        run: |
-          find "$TARGET_DIR" -name 'index.html' -exec rm -f {} + 2>/dev/null || true
-
       - name: Check for changes
         id: changes
         run: |
@@ -86,6 +82,11 @@ jobs:
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
             echo "No changes detected."
           fi
+
+      - name: Remove index.html for GenerateDirectoryTree regeneration
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          find "$TARGET_DIR" -name 'index.html' -exec rm -f {} + 2>/dev/null || true
 
       - name: Create Pull Request
         if: steps.changes.outputs.has_changes == 'true'
