@@ -7,316 +7,338 @@
 // 
 // # Project: brotli
 // License: Expat
-// Copyright: 2014 Google Inc.
+// Copyright: 2009, 2010, 2013-2016 by the Brotli Authors
+//   2010 Google Inc.
+//   2013 Google Inc.
+//   2014 Google Inc.
+//   2015 Google Inc.
 //   2015 The Chromium Authors.
 //   2016 Google Inc.
 //   2017 Google Inc.
 //   2018 Google Inc.
-//   2015 Google Inc.
-//   2013 Google Inc.
-//   2009, 2010, 2013-2016 by the Brotli Authors
-//   2010 Google Inc.
 // 
 // # Project: expat
 // License: Expat
-// Copyright: 2019 Zhongyuan Zhou <zhouzhongyuan@huawei.com>
-//   2017-2022 Rhodri James <rhodri@wildebeest.org.uk>
-//   2020 Joe Orton <jorton@redhat.com>
-//   2016-2019 Sebastian Pipping <sebastian@pipping.org>
-//   2021 Dong-hee Na <donghee.na@python.org>
-//   2017 Joe Orton <jorton@redhat.com>
-//   2002 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
-//   2004-2006 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
-//   2017 Sebastian Pipping <sebastian@pipping.org>
-//   2004-2006 Karl Waclawek <karl@waclawek.net>
-//   2006 Karl Waclawek <karl@waclawek.net>
-//   2003-2006 Karl Waclawek <karl@waclawek.net>
-//   2001-2003 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
-//   2000-2004 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
-//   2017 Franek Korta <fkorta@gmail.com>
-//   2001-2004 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
-//   2006-2012 Karl Waclawek <karl@waclawek.net>
-//   2017 Benbuck Nason <bnason@netflix.com>
-//   2019 David Loffredo <loffredo@steptools.com>
-//   2021 Tim Bray <tbray@textuality.com>
-//   2018 Benjamin Peterson <benjamin@python.org>
-//   2017 Rhodri James <rhodri@wildebeest.org.uk>
-//   2002-2005 Karl Waclawek <karl@waclawek.net>
-//   2016-2020 Sebastian Pipping <sebastian@pipping.org>
-//   2016-2018 Sebastian Pipping <sebastian@pipping.org>
-//   2016 Gilles Espinasse <g.esp@free.fr>
-//   2007 Karl Waclawek <karl@waclawek.net>
-//   2002-2016 Karl Waclawek <karl@waclawek.net>
-//   2001-2006 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
-//   2016 Don Lewis <truckman@apache.org>
-//   2000-2017 Expat development team
-//   2002-2004 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
-//   2000 Clark Cooper <coopercc@users.sourceforge.net>
-//   2002 Greg Stein <gstein@users.sourceforge.net>
-//   2018 Marco Maggi <marco.maggi-ipsu@poste.it>
-//   2005-2012 Karl Waclawek <karl@waclawek.net>
-//   2020 Boris Kolpackov <boris@codesynthesis.com>
-//   2022 Thijs Schreijer <thijs@thijsschreijer.nl>
-//   2017-2019 Sebastian Pipping <sebastian@pipping.org>
-//   2016 Cristian Rodr\x{00c3}\x{00ad}guez <crrodriguez@opensuse.org>
-//   2005 Karl Waclawek <karl@waclawek.net>
+// Copyright: 1997-2000 Thai Open Source Software Center Ltd
 //   1999-2000 Thai Open Source Software Center Ltd
-//   2000-2017 Expat development team / 1997-2000 Thai Open Source Software Center Ltd
-//   2005-2007 Steven Solie <steven@solie.ca>
-//   2016-2021 Sebastian Pipping <sebastian@pipping.org>
-//   2005 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
-//   2018 Anton Maklakov <antmak.pub@gmail.com>
-//   2017 Alexander Bluhm <alexander.bluhm@gmx.net>
-//   2016-2022 Sebastian Pipping <sebastian@pipping.org>
-//   1997-2000 Thai Open Source Software Center Ltd
-//   2017-2021 Sebastian Pipping <sebastian@pipping.org>
-//   2002-2009 Karl Waclawek <karl@waclawek.net>
-//   2002 Karl Waclawek <karl@waclawek.net>
-//   2004-2009 Karl Waclawek <karl@waclawek.net>
-//   2020 Tim Gates <tim.gates@iress.com>
-//   2016 Pascal Cuoq <cuoq@trust-in-soft.com>
-//   2017 Jos\x{00c3}\x{00a9} Guti\x{00c3}\x{00a9}rrez de la Concha <jose@zeroc.com>
-//   2001-2002 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
-//   2002-2006 Karl Waclawek <karl@waclawek.net>
+//   2000 Clark Cooper <coopercc@users.sourceforge.net>
+//   2000-2004 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
 //   2000-2005 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
-//   2005-2009 Steven Solie <steven@solie.ca>
-//   2018 Yury Gribov <tetra2005@gmail.com>
-//   2022 Martin Ettl <ettl.martin78@googlemail.com>
-//   2003 Greg Stein <gstein@users.sourceforge.net>
-//   2016-2017 Sebastian Pipping <sebastian@pipping.org>
-//   2020 Kleber Tarc\x{00c3}\x{00ad}sio <klebertarcisio@yahoo.com.br>
+//   2000-2006 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
+//   2000-2017 Expat development team
+//   2000-2017 Expat development team / 1997-2000 Thai Open Source Software Center Ltd
+//   2001-2002 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
 //   2001-2002 Greg Stein <gstein@users.sourceforge.net>
+//   2001-2003 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
+//   2001-2004 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
+//   2001-2006 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
+//   2002 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
+//   2002 Greg Stein <gstein@users.sourceforge.net>
+//   2002 Karl Waclawek <karl@waclawek.net>
 //   2002-2003 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
+//   2002-2004 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
+//   2002-2005 Karl Waclawek <karl@waclawek.net>
+//   2002-2006 Karl Waclawek <karl@waclawek.net>
+//   2002-2009 Karl Waclawek <karl@waclawek.net>
+//   2002-2016 Karl Waclawek <karl@waclawek.net>
+//   2003 Greg Stein <gstein@users.sourceforge.net>
+//   2003-2006 Karl Waclawek <karl@waclawek.net>
+//   2004-2006 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
+//   2004-2006 Karl Waclawek <karl@waclawek.net>
+//   2004-2009 Karl Waclawek <karl@waclawek.net>
+//   2005 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
+//   2005 Karl Waclawek <karl@waclawek.net>
 //   2005-2006 Karl Waclawek <karl@waclawek.net>
+//   2005-2007 Steven Solie <steven@solie.ca>
+//   2005-2009 Steven Solie <steven@solie.ca>
+//   2005-2012 Karl Waclawek <karl@waclawek.net>
+//   2006 Karl Waclawek <karl@waclawek.net>
+//   2006-2012 Karl Waclawek <karl@waclawek.net>
+//   2007 Karl Waclawek <karl@waclawek.net>
+//   2016 Cristian Rodríguez <crrodriguez@opensuse.org>
+//   2016 Don Lewis <truckman@apache.org>
+//   2016 Ed Schouten <ed@nuxi.nl>
+//   2016 Eric Rahm <erahm@mozilla.com>
+//   2016 Gaurav <g.gupta@samsung.com>
+//   2016 Gilles Espinasse <g.esp@free.fr>
+//   2016 Gustavo Grieco <gustavo.grieco@imag.fr>
+//   2016 Pascal Cuoq <cuoq@trust-in-soft.com>
 //   2016 Thomas Beutlich <tc@tbeu.de>
+//   2016-2017 Sebastian Pipping <sebastian@pipping.org>
+//   2016-2018 Sebastian Pipping <sebastian@pipping.org>
+//   2016-2019 Sebastian Pipping <sebastian@pipping.org>
+//   2016-2020 Sebastian Pipping <sebastian@pipping.org>
+//   2016-2021 Sebastian Pipping <sebastian@pipping.org>
+//   2016-2022 Sebastian Pipping <sebastian@pipping.org>
+//   2017 Alexander Bluhm <alexander.bluhm@gmx.net>
+//   2017 Benbuck Nason <bnason@netflix.com>
+//   2017 Chanho Park <chanho61.park@samsung.com>
+//   2017 Franek Korta <fkorta@gmail.com>
+//   2017 Hans Wennborg <hans@chromium.org>
+//   2017 Joe Orton <jorton@redhat.com>
+//   2017 José Gutiérrez de la Concha <jose@zeroc.com>
+//   2017 Rhodri James <rhodri@wildebeest.org.uk>
+//   2017 Rolf Eike Beer <eike@sf-mail.de>
+//   2017 Sebastian Pipping <sebastian@pipping.org>
+//   2017 Viktor Szakats <commit@vsz.me>
+//   2017 Václav Slavík <vaclav@slavik.io>
+//   2017-2019 Sebastian Pipping <sebastian@pipping.org>
+//   2017-2021 Sebastian Pipping <sebastian@pipping.org>
+//   2017-2022 Rhodri James <rhodri@wildebeest.org.uk>
+//   2018 Anton Maklakov <antmak.pub@gmail.com>
+//   2018 Benjamin Peterson <benjamin@python.org>
+//   2018 Marco Maggi <marco.maggi-ipsu@poste.it>
+//   2018 Mariusz Zaborski <oshogbo@vexillium.org>
+//   2018 Yury Gribov <tetra2005@gmail.com>
+//   2019 David Loffredo <loffredo@steptools.com>
+//   2019 Vadim Zeitlin <vadim@zeitlins.org>
+//   2019 Zhongyuan Zhou <zhouzhongyuan@huawei.com>
+//   2019-2020 Ben Wagner <bungeman@chromium.org>
+//   2020 Boris Kolpackov <boris@codesynthesis.com>
+//   2020 Joe Orton <jorton@redhat.com>
+//   2020 Kleber Tarcísio <klebertarcisio@yahoo.com.br>
+//   2020 Tim Gates <tim.gates@iress.com>
+//   2021 Dong-hee Na <donghee.na@python.org>
+//   2021 Tim Bray <tbray@textuality.com>
+//   2022 Jann Horn <jannh@google.com>
+//   2022 Jeffrey Walton <noloader@gmail.com>
+//   2022 Martin Ettl <ettl.martin78@googlemail.com>
+//   2022 Samanta Navarro <ferivoz@riseup.net>
+//   2022 Thijs Schreijer <thijs@thijsschreijer.nl>
 // 
 // # Project: freetype
+// License: BSL-1.0
+// Copyright: 2019 nyorain
+// 
+// License: Expat
+// Copyright: 2000 Computing Research Labs, New Mexico State University
+//   2000-2001, 2003 Francesco Zappa Nardelli
+//   2000-2001, 2004 Francesco Zappa Nardelli
+//   2000-2002 Francesco Zappa Nardelli
+//   2000-2003, 2006, 2010 Francesco Zappa Nardelli
+//   2000-2004, 2006-2011, 2013-2014 Francesco Zappa Nardelli
+//   2000-2010, 2012-2014 Francesco Zappa Nardelli
+//   2001-2002 Francesco Zappa Nardelli
+//   2001-2002, 2012 Francesco Zappa Nardelli
+//   2001-2004 Francesco Zappa Nardelli
+//   2001-2004, 2011 Francesco Zappa Nardelli
+//   2001-2008, 2011, 2013-2014 Francesco Zappa Nardelli
+//   2001-2014 Francesco Zappa Nardelli
+//   2001-2015 Francesco Zappa Nardelli
+//   2003 Francesco Zappa Nardelli
+// 
 // License: FTL
-// Copyright: \x{00c5}\x{009d}\x{00c5}\x{00a5} \x{00c5}\x{009d}\x{00c5}\x{00a5}\x{00d1}\x{008f}\x{00c3}\x{00af}\x{00ef}\x{00ac}\x{00af}\x{00c4}\x{009f}")
-//   2009-2013 Adobe Systems Incorporated.
-//   2016-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2013 Adobe Systems Incorporated.
-//   2004-2022 David Turner, Robert Wilhelm, Werner Lemberg, and George Williams.
-//   2013-2022 Google, Inc.
-//   2018-2022 Armin Hasitzka, David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2007-2014 Adobe Systems Incorporated.
-//   2008-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2005-2022 Werner Lemberg and Detlef W\x{00fc}rkner.
-//   2006-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2007-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   1996-2022 David Turner, Robert Wilhelm, Werner Lemberg and Detlef W\x{00fc}rkner.
-//   2004-2022 Masatake YAMATO, Redhat K.K,
-//   1996-2022 David Turner, Robert Wilhelm, Werner Lemberg, and Detlef Wuerkner.
-//   1996-2022 David Turner, Robert Wilhelm, and Werner Lemberg
-//   1995-2016 Jean-loup Gailly, Mark Adler
-//   2021-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   \x{00c5}\x{009d}\x{00c5}\x{00a5} \x{00c5}\x{009d}\x{00c5}\x{00a5}\x{00d1}\x{008f}\x{00c3}\x{00af}\x{00ef}\x{00ac}\x{00af}\x{00c4}\x{009f}"));
-//   2004-2022 David Turner, Robert Wilhelm, Werner Lemberg and George Williams.
-//   2009-2022 Oran Agra and Mickey Gabel.
-//   2010-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   1995-2017 Jean-loup Gailly
-//   2003 Huw D M Davies for Codeweavers
-//   2013-2014 Adobe Systems Incorporated.
-//   2005-2022 David Turner.
-//   1995-2011, 2016 Mark Adler
-//   2010-2022 Joel Klinghed.
-//   2002-2022 Roberto Alameda.
-//   1996-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2011-2013 Adobe Systems Incorporated.
-//   2007 Dmitry Timoshkov for Codeweavers
-//   2002-2022 David Turner, Robert Wilhelm, and Werner Lemberg
-//   2013-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   1996-2022 Just van Rossum, David Turner, Robert Wilhelm, and Werner Lemberg.
-//   1995-2017 Mark Adler
-//   2000-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2022 David Turner, Robert Wilhelm, Werner Lemberg, and Moazin Khatti.
-//   2006-2013 Adobe Systems Incorporated.
+// Copyright: 1990, 1994, 1998 The Open Group
 //   1995-2003, 2010 Mark Adler
-//   2012-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2007-2022 Rahul Bhalerao <rahul.bhalerao@redhat.com>, <b.rahul.pm@gmail.com>.
-//   2007-2022 David Turner.
-//   2017-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2008-2022 David Turner, Robert Wilhelm, Werner Lemberg, and suzuki toshiya.
-//   2018-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
 //   1995-2005, 2010 Mark Adler
-//   2005-2022 suzuki toshiya, Masatake YAMATO, Red Hat K.K.,
-//   2020-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2007-2022 Derek Clegg and Michael Toftdal.
-//   \x{00e1}\x{00bb}\x{008b}...): %dn", "\x{00e1}\x{00ba}\x{0083}\x{00ce}\x{00ad}\x{00c5}\x{0082}\x{00c4}\x{00ba}", "all", 42);
-//   2019-2022 Nikhil Ramakrishnan, David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2013 Google, Inc.
-//   2004-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2009-2014 Adobe Systems Incorporated.
-//   2004-2022 Albert Chin-A-Young.
-//   2003-2022 Masatake YAMATO, Redhat K.K.,
-//   2002-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2007-2013 Adobe Systems Incorporated.
-//   2007-2022 Dereg Clegg and Michael Toftdal.
-//   2003-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2004-2022 Masatake YAMATO and Redhat K.K.
-//   2004-2022 Masatake YAMATO, Red Hat K.K.,
-//   2001-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   2001, 2012 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   1995-2011, 2016 Mark Adler
+//   1995-2016 Jean-loup Gailly, Mark Adler
+//   1995-2017 Jean-loup Gailly
+//   1995-2017 Mark Adler
+//   1995-2019 Mark Adler
 //   1995-2022 Jean-loup Gailly, Mark Adler
 //   1995-2022 Mark Adler
+//   1996-2022 David Turner, Robert Wilhelm, Werner Lemberg and Detlef Würkner.
+//   1996-2022 David Turner, Robert Wilhelm, Werner Lemberg, and Detlef Wuerkner.
+//   1996-2022 David Turner, Robert Wilhelm, and Werner Lemberg
+//   1996-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   1996-2022 Just van Rossum, David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2000-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2001, 2012 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2001-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2002-2022 David Turner, Robert Wilhelm, and Werner Lemberg
+//   2002-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2002-2022 Roberto Alameda.
+//   2003 Huw D M Davies for Codeweavers
+//   2003-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2003-2022 Masatake YAMATO, Redhat K.K.,
 //   2004-2019 Mark Adler
-//   1990, 1994, 1998 The Open Group
-//   2005-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
-//   1995-2019 Mark Adler
-//   2018-2022 David Turner, Robert Wilhelm, Dominik R\x{00c3}\x{00b6}ttsches, and Werner Lemberg.
+//   2004-2022 Albert Chin-A-Young.
+//   2004-2022 David Turner, Robert Wilhelm, Werner Lemberg and George Williams.
+//   2004-2022 David Turner, Robert Wilhelm, Werner Lemberg, and George Williams.
+//   2004-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2004-2022 Masatake YAMATO and Redhat K.K.
+//   2004-2022 Masatake YAMATO, Red Hat K.K.,
+//   2004-2022 Masatake YAMATO, Redhat K.K,
 //   2004-2022 suzuki toshiya, Masatake YAMATO, Red Hat K.K.,
-// 
-// License: public-domain
-// Copyright: 2001 Alexander Peslyak and it is hereby released to the
+//   2005-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2005-2022 David Turner.
+//   2005-2022 Werner Lemberg and Detlef Würkner.
+//   2005-2022 suzuki toshiya, Masatake YAMATO, Red Hat K.K.,
+//   2006-2013 Adobe Systems Incorporated.
+//   2006-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2007 Dmitry Timoshkov for Codeweavers
+//   2007-2013 Adobe Systems Incorporated.
+//   2007-2014 Adobe Systems Incorporated.
+//   2007-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2007-2022 David Turner.
+//   2007-2022 Dereg Clegg and Michael Toftdal.
+//   2007-2022 Derek Clegg and Michael Toftdal.
+//   2007-2022 Rahul Bhalerao <rahul.bhalerao@redhat.com>, <b.rahul.pm@gmail.com>.
+//   2008-2022 David Turner, Robert Wilhelm, Werner Lemberg, and suzuki toshiya.
+//   2008-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2009-2013 Adobe Systems Incorporated.
+//   2009-2014 Adobe Systems Incorporated.
+//   2009-2022 Oran Agra and Mickey Gabel.
+//   2010-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2010-2022 Joel Klinghed.
+//   2011-2013 Adobe Systems Incorporated.
+//   2012-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2013 Adobe Systems Incorporated.
+//   2013 Google, Inc.
+//   2013-2014 Adobe Systems Incorporated.
+//   2013-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2013-2022 Google, Inc.
+//   2016-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2017-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2018-2022 Armin Hasitzka, David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2018-2022 David Turner, Robert Wilhelm, Dominik Röttsches, and Werner Lemberg.
+//   2018-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2019-2022 Nikhil Ramakrishnan, David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2020-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2021-2022 David Turner, Robert Wilhelm, and Werner Lemberg.
+//   2022 David Turner, Robert Wilhelm, Werner Lemberg, and Moazin Khatti.
 // 
 // License: Zlib
 // Copyright: 1995-2022 Jean-loup Gailly and Mark Adler
 // 
-// License: Expat
-// Copyright: 2000-2001, 2004 Francesco Zappa Nardelli
-//   2001-2004 Francesco Zappa Nardelli
-//   2003 Francesco Zappa Nardelli
-//   2001-2015 Francesco Zappa Nardelli
-//   2001-2004, 2011 Francesco Zappa Nardelli
-//   2000-2002 Francesco Zappa Nardelli
-//   2000 Computing Research Labs, New Mexico State University
-//   2001-2014 Francesco Zappa Nardelli
-//   2001-2002, 2012 Francesco Zappa Nardelli
-//   2001-2002 Francesco Zappa Nardelli
-//   2001-2008, 2011, 2013-2014 Francesco Zappa Nardelli
-//   2000-2003, 2006, 2010 Francesco Zappa Nardelli
-//   2000-2001, 2003 Francesco Zappa Nardelli
-//   2000-2004, 2006-2011, 2013-2014 Francesco Zappa Nardelli
-//   2000-2010, 2012-2014 Francesco Zappa Nardelli
-// 
-// License: BSL-1.0
-// Copyright: 2019 nyorain
+// License: public-domain
+// Copyright: 2001 Alexander Peslyak and it is hereby released to the
 // 
 // # Project: fribidi
 // License: LGPL-2.1+
-// Copyright: 1999-2000, 2017 Dov Grobgeld
-//   1999-2000 Dov Grobgeld
-//   2004 Behdad Esfahbod
-//   2001-2002, 2004 Behdad Esfahbod
-//   2009 Behdad Esfahbod
-//   2017 Dov Grobgeld
-//   2004-2005 Behdad Esfahbod
-//   2004 Sharif FarsiWeb, Inc.
-//   2015, 2017 Dov Grobgeld
-//   2005 Behdad Esfahbod
+// Copyright: 1999-2000 Dov Grobgeld
+//   1999-2000, 2017 Dov Grobgeld
 //   2001 Behdad Esfahbod.
 //   2001-2002 Behdad Esfahbod
+//   2001-2002, 2004 Behdad Esfahbod
+//   2004 Behdad Esfahbod
 //   2004 Sharif FarsiWeb, Inc
+//   2004 Sharif FarsiWeb, Inc.
+//   2004-2005 Behdad Esfahbod
+//   2005 Behdad Esfahbod
+//   2009 Behdad Esfahbod
+//   2015, 2017 Dov Grobgeld
+//   2017 Dov Grobgeld
 // 
 // # Project: fontconfig
-// License: NTP~disclaimer
-// Copyright: 2002 Keith Packard
-//   2009 Roozbeh Pournader
-//   2000 Tuomas J. Lukka
-//   2006 Keith Packard
-//   2008 Red Hat, Inc.
-//   2000-2007 Keith Packard / 2005 Patrick Lam / 2009 Roozbeh Pournader / 2008,2009 Red Hat, Inc. / 2008 Danilo Šegan / 2012 Google, Inc.
-//   2001 Keith Packard
-//   2012 Google, Inc.
-//   2012 Red Hat, Inc.
-//   2013 Raimund Steger
-//   2008,2009 Red Hat, Inc.
-//   2000-2007 Keith Packard
-//   2005 Patrick Lam
-//   2003 Keith Packard
-//   2020 Zoltan Vandrus
-//   \x{00e6}\x{0081}\x{00af} 2010 Behdad Esfahbod
-//   2014 Red Hat, Inc.
-//   2018 Akira TAGOH
-//   2007 Keith Packard
-//   \x{00e6}\x{0081}\x{00af} 2006 Keith Packard
-//   2008 Danilo Šegan
-//   2015 Akira TAGOH
-//   2016 Akira TAGOH
-//   2008-2009 Red Hat, Inc.
-//   2000 Keith Packard
-//   2013 Akira TAGOH
-//   2013 Google, Inc.
-//   2010 Behdad Esfahbod
-// 
-// License: MIT~old
-// Copyright: 2009-2010 Red Hat, Inc.
-//   2011-2013 Google, Inc.
-//   2007 Chris Wilson
-// 
-// License: public-domain
-// Copyright: 2008,2009 Red Hat, Inc.
-//   2009 Roozbeh Pournader
-//   2012 Google, Inc.
-//   2008 Danilo Šegan
-//   2005 Patrick Lam
-//   2000-2007 Keith Packard
-// 
 // License: Expat
 // Copyright: 2002-2003 Juliusz Chroboczek
 // 
+// License: MIT~old
+// Copyright: 2007 Chris Wilson
+//   2009-2010 Red Hat, Inc.
+//   2011-2013 Google, Inc.
+// 
+// License: NTP~disclaimer
+// Copyright: 2000 Keith Packard
+//   2000 Tuomas J. Lukka
+//   2000-2007 Keith Packard
+//   2000-2007 Keith Packard / 2005 Patrick Lam / 2009 Roozbeh Pournader / 2008,2009 Red Hat, Inc. / 2008 Danilo Šegan / 2012 Google, Inc.
+//   2001 Keith Packard
+//   2002 Keith Packard
+//   2003 Keith Packard
+//   2005 Patrick Lam
+//   2006 Keith Packard
+//   2007 Keith Packard
+//   2008 Danilo Šegan
+//   2008 Red Hat, Inc.
+//   2008,2009 Red Hat, Inc.
+//   2008-2009 Red Hat, Inc.
+//   2009 Roozbeh Pournader
+//   2010 Behdad Esfahbod
+//   2012 Google, Inc.
+//   2012 Red Hat, Inc.
+//   2013 Akira TAGOH
+//   2013 Google, Inc.
+//   2013 Raimund Steger
+//   2014 Red Hat, Inc.
+//   2015 Akira TAGOH
+//   2016 Akira TAGOH
+//   2018 Akira TAGOH
+//   2020 Zoltan Vandrus
+//   息 2006 Keith Packard
+//   息 2010 Behdad Esfahbod
+// 
+// License: public-domain
+// Copyright: 2000-2007 Keith Packard
+//   2005 Patrick Lam
+//   2008 Danilo Šegan
+//   2008,2009 Red Hat, Inc.
+//   2009 Roozbeh Pournader
+//   2012 Google, Inc.
+// 
 // # Project: harfbuzz
+// License: MIT~old
+// Copyright: 1998-2004 David Turner and Werner Lemberg
+//   2004, 2007, 2009 Red Hat, Inc.
+//   2007-2009 Red Hat, Inc.
+//   2009 Red Hat, Inc.
+//   2011 Codethink Limited
+//   2011 Google, Inc.
+//   2011 Martin Hosken
+//   2011 SIL International
+//   2011-2012 Google, Inc.
+//   2012 Google, Inc.
+//   2012 Mozilla Foundation.
+//   2013 Google, Inc.
+//   2013 Red Hat, Inc.
+//   2014 Google, Inc.
+//   2015 Google, Inc.
+//   2015-2019 Ebrahim Byagowi
+//   2016 Google, Inc.
+//   2016 Igalia S.L.
+//   2017 Google, Inc.
+//   2018 Ebrahim Byagowi
+//   2018 Ebrahim Byagowi.
+//   2018 Google, Inc.
+//   2018 Khaled Hosny
+//   2019 Ebrahim Byagowi
+//   2019-2020 Ebrahim Byagowi
+//   2020 Ebrahim Byagowi
+//   2022 Google, Inc.
+// 
 // License: NTP~disclaimer
 // Copyright: 2002 Keith Packard
 //   2014 Google, Inc.
 // 
-// License: MIT~old
-// Copyright: 2012 Mozilla Foundation.
-//   2004, 2007, 2009 Red Hat, Inc.
-//   2009 Red Hat, Inc.
-//   2015 Google, Inc.
-//   2014 Google, Inc.
-//   2018 Ebrahim Byagowi
-//   2016 Igalia S.L.
-//   2018 Ebrahim Byagowi.
-//   2011 Martin Hosken
-//   2019 Ebrahim Byagowi
-//   1998-2004 David Turner and Werner Lemberg
-//   2020 Ebrahim Byagowi
-//   2013 Red Hat, Inc.
-//   2011-2012 Google, Inc.
-//   2011 SIL International
-//   2018 Khaled Hosny
-//   2018 Google, Inc.
-//   2019-2020 Ebrahim Byagowi
-//   2022 Google, Inc.
-//   2012 Google, Inc.
-//   2017 Google, Inc.
-//   2007-2009 Red Hat, Inc.
-//   2011 Codethink Limited
-//   2013 Google, Inc.
-//   2015-2019 Ebrahim Byagowi
-//   2016 Google, Inc.
-//   2011 Google, Inc.
-// 
 // # Project: libass
-// License: public-domain
-// Copyright: 2006-2016 libass contributors
-// 
-// License: NTP
-// Copyright: 1994 Sun Microsystems, Inc.
-//   2016 Oleg Oshmyan <chortos@inbox.lv>
-//   1988-1993 The Regents of the University of California.
+// License: BSD-2-clause
+// Copyright: 2018 Two Orioles, LLC
+//   2018 VideoLAN and dav1d authors
 // 
 // License: ISC
-// Copyright: 2015 Oleg Oshmyan <chortos@inbox.lv>
+// Copyright: 2006 Evgeniy Stepanov <eugeni.stepanov@gmail.com>
+//   2006-2016 libass contributors
+//   2009 Grigori Goronzy <greg@geekmind.org>
+//   2009-2022 libass contributors
+//   2010 Grigori Goronzy <greg@geekmind.org>
+//   2011 Grigori Goronzy <greg@chown.ath.cx>
 //   2011-2014 Yu Zhuohuang <yuzhuohuang@qq.com>
+//   2013 Stefano Pigozzi <stefano.pigozzi@gmail.com>
 //   2013 rcombs <rcombs@rcombs.me>
-//   2016 Vabishchevich Nikolay <vabnick@gmail.com>
-//   2022 libass contributors
+//   2014 Vabishchevich Nikolay <vabnick@gmail.com>
+//   2014-2022 libass contributors
+//   2015 Grigori Goronzy <greg@kinoho.net>
+//   2015 Oleg Oshmyan <chortos@inbox.lv>
 //   2015 Stephan Vedder <stephan.vedder@gmail.com>
 //   2015 Vabishchevich Nikolay <vabnick@gmail.com>
-//   interest in the
-//   2006-2016 libass contributors
-//   2021 libass contributors
+//   2015-2022 libass contributors
+//   2016 Vabishchevich Nikolay <vabnick@gmail.com>
 //   2017 Vabishchevich Nikolay <vabnick@gmail.com>
-//   2011 Grigori Goronzy <greg@chown.ath.cx>
-//   2010 Grigori Goronzy <greg@geekmind.org>
-//   2014 Vabishchevich Nikolay <vabnick@gmail.com>
-//   2015 Grigori Goronzy <greg@kinoho.net>
-//   2013 Stefano Pigozzi <stefano.pigozzi@gmail.com>
-//   2006 Evgeniy Stepanov <eugeni.stepanov@gmail.com>
-//   2009 Grigori Goronzy <greg@geekmind.org>
+//   2020-2022 libass contributors
+//   2021 libass contributors
+//   2021-2022 libass contributors
+//   2022 libass contributors
+//   interest in the
+// 
+// License: NTP
+// Copyright: 1988-1993 The Regents of the University of California.
+//   1994 Sun Microsystems, Inc.
+//   2016 Oleg Oshmyan <chortos@inbox.lv>
+// 
+// License: public-domain
+// Copyright: 2006-2016 libass contributors
 // 
 // # The following section contains the full license text or
 // # where permitted a shorter notice for all works contained
@@ -330,6 +352,29 @@
 // #   MIT~old        | MIT-Modern-Variant
 // #   Expat          | MIT
 // #   NTP~disclaimer | (None; it is NTP with a more verbose warranty disclaimer)
+// 
+// License: BSD-2-clause
+//   Redistribution and use in source and binary forms, with or without
+//   modification, are permitted provided that the following conditions are met:
+//   .
+//   1. Redistributions of source code must retain the above copyright notice,
+//   this list of conditions and the following disclaimer.
+//   .
+//   2. Redistributions in binary form must reproduce the above copyright notice,
+//   this list of conditions and the following disclaimer in the documentation
+//   and/or other materials provided with the distribution.
+//   .
+//   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS”
+//   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+//   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+//   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+//   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+//   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+//   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+//   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+//   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+//   POSSIBILITY OF SUCH DAMAGE.
 // 
 // License: Expat
 //   Permission is  hereby granted,  free of charge,  to any  person obtaining
@@ -962,13 +1007,19 @@
 //     Ty Coon, President of Vice
 //   .
 //   That's all there is to it!
-"use strict";
+// minimum time difference between frames
+var FRAMETIME_ULP = 0.001;
+// minimum time difference between subtitle events
+var EVENTTIME_ULP = 0.01;
+// maximum time offset for the next request in seconds
+var MAX_REQUEST_OFFSET = 1;
+
 var SubtitlesOctopus = function (options) {
     var supportsWebAssembly = false;
     try {
         if (typeof WebAssembly === "object"
             && typeof WebAssembly.instantiate === "function") {
-            const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
+            var module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
             if (module instanceof WebAssembly.Module)
                 supportsWebAssembly = (new WebAssembly.Instance(module) instanceof WebAssembly.Instance);
         }
@@ -979,13 +1030,15 @@ var SubtitlesOctopus = function (options) {
     var self = this;
     self.canvas = options.canvas; // HTML canvas element (optional if video specified)
     self.renderMode = options.renderMode || (options.lossyRender ? 'lossy' : 'wasm-blend');
+    self.dropAllAnimations = options.dropAllAnimations || false;
     self.libassMemoryLimit = options.libassMemoryLimit || 0;
     self.libassGlyphLimit = options.libassGlyphLimit || 0;
     self.targetFps = options.targetFps || 24;
     self.prescaleFactor = options.prescaleFactor || 1.0;
     self.prescaleHeightLimit = options.prescaleHeightLimit || 1080;
     self.maxRenderHeight = options.maxRenderHeight || 0; // 0 - no limit
-    self.dropAllAnimations = options.dropAllAnimations || false; // attempt to remove all animations as a last ditch effort for displaying on weak hardware; may severly mangle subtitles if enabled
+    self.resizeVariation = options.resizeVariation || 0.2; // by how many a size can vary before it would cause clearance of prerendered buffer
+    self.renderAhead = options.renderAhead || 0; // how many MiB to render ahead and store; 0 to disable (approximate)
     self.isOurCanvas = false; // (internal) we created canvas and manage it
     self.video = options.video; // HTML video element (optional if canvas specified)
     self.canvasParent = null; // (internal) HTML canvas parent element
@@ -1006,9 +1059,28 @@ var SubtitlesOctopus = function (options) {
     self.lastRenderTime = 0; // (internal) Last time we got some frame from worker
     self.pixelRatio = window.devicePixelRatio || 1; // (internal) Device pixel ratio (for high dpi devices)
 
-    self.timeOffset = options.timeOffset || 0; // Time offset would be applied to currentTime from video (option)
+    self.renderedItems = []; // used to store items rendered ahead when renderAhead > 0
+    self.renderAhead = self.renderAhead * 1024 * 1024 * 0.9 /* try to eat less than requested */;
+    self.oneshotState = {
+        displayedEvent: null, // Last displayed event
+        eventStart: null,
+        eventOver: false,
+        iteration: 0,
+        renderRequested: false,
+        requestNextTimestamp: -1,
+        nextRequestOffset: 0, // Next request offset, s
+        restart: true,
+        prevWidth: null,
+        prevHeight: null
+    }
+    self.rafId = 0;
 
     self.hasAlphaBug = false;
+
+    // private
+    var targetWidth;    // Width of render target
+    var targetHeight;   // Height of render target
+    var _timeOffset = options.timeOffset || 0; // Time offset would be applied to currentTime from video (option)
 
     (function() {
         if (typeof ImageData.prototype.constructor === 'function') {
@@ -1039,6 +1111,19 @@ var SubtitlesOctopus = function (options) {
         }
     })();
 
+    Object.defineProperty(self, 'timeOffset', {
+        get: function () {
+            return _timeOffset;
+        },
+        set: function (value) {
+            if (_timeOffset === value) return;
+
+            _timeOffset = value;
+
+            _afterSeek();
+        }
+    });
+
     self.workerError = function (error) {
         console.error('Worker error: ', error);
         if (self.onErrorEvent) {
@@ -1066,6 +1151,10 @@ var SubtitlesOctopus = function (options) {
         self.createCanvas();
         self.setVideo(options.video);
         self.setSubUrl(options.subUrl);
+
+        targetWidth = self.canvas.width;
+        targetHeight = self.canvas.height;
+
         self.worker.postMessage({
             target: 'worker-init',
             width: self.canvas.width,
@@ -1084,6 +1173,7 @@ var SubtitlesOctopus = function (options) {
             targetFps: self.targetFps,
             libassMemoryLimit: self.libassMemoryLimit,
             libassGlyphLimit: self.libassGlyphLimit,
+            renderOnDemand: self.renderAhead > 0,
             dropAllAnimations: self.dropAllAnimations
         });
     };
@@ -1136,15 +1226,15 @@ var SubtitlesOctopus = function (options) {
     };
 
     function onTimeUpdate() {
-        self.setCurrentTime(self.video.currentTime + self.timeOffset);
+        self.setCurrentTime(self.video.currentTime + _timeOffset);
     };
 
     function onPlaying() {
-        self.setIsPaused(false, self.video.currentTime + self.timeOffset);
+        self.setIsPaused(false, self.video.currentTime + _timeOffset);
     }
 
     function onPause() {
-        self.setIsPaused(true, self.video.currentTime + self.timeOffset);
+        self.setIsPaused(true, self.video.currentTime + _timeOffset);
     }
 
     function onSeeking() {
@@ -1153,10 +1243,7 @@ var SubtitlesOctopus = function (options) {
 
     function onSeeked() {
         self.video.addEventListener('timeupdate', onTimeUpdate, false);
-
-        var currentTime = self.video.currentTime + self.timeOffset;
-
-        self.setCurrentTime(currentTime);
+        _afterSeek();
     }
 
     function onRateChange() {
@@ -1164,7 +1251,7 @@ var SubtitlesOctopus = function (options) {
     }
 
     function onWaiting() {
-        self.setIsPaused(true, self.video.currentTime + self.timeOffset);
+        self.setIsPaused(true, self.video.currentTime + _timeOffset);
     }
 
     function onLoadedMetadata(e) {
@@ -1226,6 +1313,287 @@ var SubtitlesOctopus = function (options) {
     self.setSubUrl = function (subUrl) {
         self.subUrl = subUrl;
     };
+
+    function _cleanPastRendered(currentTime, seekClean) {
+        var retainedItems = [];
+        for (var i = 0, len = self.renderedItems.length; i < len; i++) {
+            var item = self.renderedItems[i];
+            if (item.emptyFinish < 0 || currentTime < item.emptyFinish) {
+                // item is not yet finished, retain it
+                retainedItems.push(item);
+            }
+        }
+
+        if (seekClean && retainedItems.length > 0) {
+            // items are ordered by event start time when we push to self.renderedItems,
+            // so first item is the earliest
+            if (currentTime < retainedItems[0].eventStart) {
+                if (retainedItems[0].eventStart - currentTime > 60) {
+                    console.info("seeked back too far, cleaning prerender buffer");
+                    retainedItems = [];
+                } else {
+                    console.info("seeked backwards, need to free up some buffer");
+                    var size = 0, limit = self.renderAhead * 0.3 /* try to take no more than 1/3 of buffer */;
+                    var retain = [];
+                    for (var i = 0, len = retainedItems.length; i < len; i++) {
+                        var item = retainedItems[i];
+                        size += item.size;
+                        // Remove the end marker (emptyFinish < 0) to allow re-rendering in case we already reached end-of-events
+                        if (size >= limit || item.emptyFinish < 0) break;
+                        retain.push(item);
+                    }
+                    retainedItems = retain;
+                }
+            }
+        }
+
+        if (seekClean) {
+            self.oneshotState.displayedEvent = null;
+            self.oneshotState.nextRequestOffset = 0;
+        }
+
+        var removed = retainedItems.length < self.renderedItems.length;
+        self.renderedItems = retainedItems;
+        return removed;
+    }
+
+    /**
+     * Updates the internal state after seeking or changing the time offset.
+     */
+    function _afterSeek() {
+        var currentTime = self.video.currentTime + _timeOffset;
+
+        self.setCurrentTime(currentTime);
+
+        if (self.renderAhead > 0) {
+            _cleanPastRendered(currentTime, true);
+        }
+    }
+
+    function tryRequestOneshot(currentTime, renderNow) {
+        if (!self.renderAhead || self.renderAhead <= 0) return;
+        if (self.oneshotState.renderRequested && !renderNow) return;
+
+        if (typeof currentTime === 'undefined') {
+            if (!self.video) return;
+            currentTime = self.video.currentTime + _timeOffset;
+        }
+
+        var size = 0;
+        for (var i = 0, len = self.renderedItems.length; i < len; i++) {
+            var item = self.renderedItems[i];
+            if (item.emptyFinish < 0) {
+                console.info('oneshot already reached end-of-events');
+                return;
+            }
+            if (currentTime >= item.eventStart && currentTime < item.emptyFinish) {
+                // an event for requested time already exists
+                console.debug('not requesting a render for ' + currentTime +
+                    ' as event already covering it exists (start=' +
+                    item.eventStart + ', empty=' + item.emptyFinish + ')');
+                return;
+            }
+            size += item.size;
+        }
+
+        if (size <= self.renderAhead) {
+            if (!self.oneshotState.renderRequested) {
+                self.oneshotState.renderRequested = true;
+                self.worker.postMessage({
+                    target: 'oneshot-render',
+                    lastRendered: currentTime,
+                    renderNow: renderNow,
+                    iteration: self.oneshotState.iteration
+                });
+            } else {
+                if (self.workerActive) {
+                    console.info('worker busy, requesting to seek');
+                }
+                self.oneshotState.requestNextTimestamp = currentTime;
+            }
+        }
+    }
+
+    /**
+     * Clears the canvas.
+     */
+    function _clearSubtitleEvent() {
+        self.ctx.clearRect(0, 0, self.canvas.width, self.canvas.height);
+        self.oneshotState.displayedEvent = null;
+        self.oneshotState.eventStart = null;
+        self.oneshotState.eventOver = false;
+    }
+
+    function _renderSubtitleEvent(event, currentTime) {
+        self.oneshotState.displayedEvent = event;
+
+        // keep event displayed, if there is no gap after it, until it is replaced by a new one
+        var eventOver = event.eventFinish !== event.emptyFinish && event.eventFinish <= currentTime;
+        if (self.oneshotState.eventStart == event.eventStart && self.oneshotState.eventOver == eventOver) return;
+        self.oneshotState.eventStart = event.eventStart;
+        self.oneshotState.eventOver = eventOver;
+
+        self.oneshotState.nextRequestOffset = (self.oneshotState.nextRequestOffset + event.spentTime * 1e-3) * 0.5;
+        self.oneshotState.nextRequestOffset = Math.min(self.oneshotState.nextRequestOffset, MAX_REQUEST_OFFSET);
+
+        var beforeDrawTime = performance.now();
+        if (event.viewport.width != self.canvas.width || event.viewport.height != self.canvas.height) {
+            self.canvas.width = event.viewport.width;
+            self.canvas.height = event.viewport.height;
+        }
+        self.ctx.clearRect(0, 0, self.canvas.width, self.canvas.height);
+        if (!eventOver) {
+            for (var i = 0; i < event.items.length; i++) {
+                var image = event.items[i];
+                self.bufferCanvas.width = image.w;
+                self.bufferCanvas.height = image.h;
+                self.bufferCanvasCtx.putImageData(image.image, 0, 0);
+                self.ctx.drawImage(self.bufferCanvas, image.x, image.y);
+            }
+        }
+        if (self.debug) {
+            var drawTime = Math.round(performance.now() - beforeDrawTime);
+            console.log('render: ' + Math.round(event.spentTime - event.blendTime) + ' ms, blend: ' + Math.round(event.blendTime) + ' ms, draw: ' + drawTime + ' ms');
+        }
+    }
+
+    function oneshotRender() {
+        self.rafId = window.requestAnimationFrame(oneshotRender);
+        if (!self.video) return;
+
+        var currentTime = self.video.currentTime + _timeOffset;
+
+        var eventToShow = null;
+
+        for (var i = 0, len = self.renderedItems.length; i < len; i++) {
+            var item = self.renderedItems[i];
+
+            // we need the last started event
+            if (item.eventStart <= currentTime) {
+                eventToShow = item;
+            } else {
+                break;
+            }
+        }
+
+        if (eventToShow) {
+            _renderSubtitleEvent(eventToShow, currentTime);
+        } else if (self.oneshotState.displayedEvent) {
+            _renderSubtitleEvent(self.oneshotState.displayedEvent, currentTime);
+        } else {
+            _clearSubtitleEvent();
+        }
+
+        var nextTime = currentTime;
+
+        if (!self.video.paused) {
+            // request the next event with some extra time, because we won't get it instantly
+            nextTime += Math.max(self.oneshotState.nextRequestOffset, 1.0 / self.targetFps) * self.video.playbackRate;
+        }
+
+        // Don't request negative times
+        if (nextTime < 0) nextTime = 0;
+
+        var nextEvent = null;
+        var finishTime = -1;
+        var animated = false;
+
+        for (var i = 0, len = self.renderedItems.length; i < len; i++) {
+            var item = self.renderedItems[i];
+
+            // we need to find a series of events from the request time
+            if (item.eventStart <= nextTime) {
+                nextEvent = item;
+                finishTime = item.emptyFinish;
+            } else if (finishTime >= 0) {
+                // we've already found a known event, now find
+                // the farthest point of consequent events
+                // NOTE: self.renderedItems may have gaps due to seeking
+                if (item.eventStart - finishTime < EVENTTIME_ULP) {
+                    finishTime = item.emptyFinish;
+                    animated = item.animated;
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+
+        if (nextEvent) {
+            if (finishTime >= 0) {
+                // request the next event from the most distant time
+                nextTime = Math.max(finishTime, nextTime);
+            } else {
+                // reached end-of-events
+                nextTime = -1;
+            }
+        }
+
+        var freed = !self.video.paused && _cleanPastRendered(currentTime);
+
+        if ((freed || !eventToShow || self.oneshotState.restart)
+                && nextTime >= 0 && Math.abs(self.oneshotState.requestNextTimestamp - nextTime) > EVENTTIME_ULP) {
+            tryRequestOneshot(nextTime, nextTime === finishTime ? animated : true);
+        }
+
+        self.oneshotState.restart = false;
+    }
+
+    function stopOneshotRender() {
+        window.cancelAnimationFrame(self.rafId);
+        self.rafId = 0;
+    }
+
+    self.resetRenderAheadCache = function (isResizing) {
+        if (self.renderAhead > 0) {
+            var newCache = [];
+            if (isResizing && self.oneshotState.prevHeight && self.oneshotState.prevWidth) {
+                if (self.oneshotState.prevHeight === targetHeight &&
+                    self.oneshotState.prevWidth === targetWidth) return;
+                var timeLimit = 10, sizeLimit = self.renderAhead * 0.3;
+                if (targetHeight >= self.oneshotState.prevHeight * (1.0 - self.resizeVariation) &&
+                    targetHeight <= self.oneshotState.prevHeight * (1.0 + self.resizeVariation) &&
+                    targetWidth >= self.oneshotState.prevWidth * (1.0 - self.resizeVariation) &&
+                    targetWidth <= self.oneshotState.prevWidth * (1.0 + self.resizeVariation)) {
+                    console.debug('viewport changes are small, leaving more of prerendered buffer');
+                    timeLimit = 30;
+                    sizeLimit = self.renderAhead * 0.5;
+                }
+                var stopTime = self.video.currentTime + _timeOffset + timeLimit;
+                var size = 0;
+                for (var i = 0; i < self.renderedItems.length; i++) {
+                    var item = self.renderedItems[i];
+                    if (item.emptyFinish < 0 || stopTime < item.eventFinish) break;
+                    size += item.size;
+                    if (size >= sizeLimit) break;
+                    newCache.push(item);
+                }
+            }
+
+            console.info('resetting prerender cache');
+            self.renderedItems = newCache;
+            self.oneshotState.eventStart = null;
+            self.oneshotState.iteration++;
+            self.oneshotState.renderRequested = false;
+            self.oneshotState.prevHeight = targetHeight;
+            self.oneshotState.prevWidth = targetWidth;
+            self.oneshotState.nextRequestOffset = 0;
+
+            // After resetting, the next `tryRequestOneshot` may be "eaten" by
+            // an already existing (in the cache) event, and it won't be called
+            // in `oneshotRender` either, since the cache won't be freed there
+            // (it was reset here).
+            self.oneshotState.restart = true;
+
+            if (!isResizing) {
+                self.oneshotState.displayedEvent = null;
+            }
+
+            if (!self.rafId) self.rafId = window.requestAnimationFrame(oneshotRender);
+            tryRequestOneshot(undefined, true);
+        }
+    }
 
     self.renderFrameData = null;
     function renderFrames() {
@@ -1351,6 +1719,91 @@ var SubtitlesOctopus = function (options) {
                         self.canvas[data.object][data.property] = data.value;
                         break;
                     }
+                    case 'oneshot-result': {
+                        if (data.iteration != self.oneshotState.iteration) {
+                            console.debug('received stale prerender, ignoring');
+                            return;
+                        }
+
+                        if (self.debug) {
+                            console.info('oneshot received (start=' +
+                                    data.eventStart + ', empty=' + data.emptyFinish +
+                                    '), render: ' + Math.round(data.spentTime) + ' ms');
+                        }
+
+                        var requestNextTimestamp = self.oneshotState.requestNextTimestamp;
+
+                        self.oneshotState.renderRequested = false;
+                        self.oneshotState.requestNextTimestamp = -1;
+
+                        if (Math.abs(data.lastRenderedTime - requestNextTimestamp) < EVENTTIME_ULP) {
+                            requestNextTimestamp = -1;
+                        }
+                        if (data.eventStart - data.lastRenderedTime > EVENTTIME_ULP) {
+                            // generate bogus empty element, so all timeline is covered anyway
+                            self.renderedItems.push({
+                                eventStart: data.lastRenderedTime,
+                                eventFinish: data.lastRenderedTime - FRAMETIME_ULP,
+                                emptyFinish: data.eventStart,
+                                viewport: data.viewport,
+                                spentTime: 0,
+                                blendTime: 0,
+                                items: [],
+                                animated: false,
+                                size: 0
+                            });
+                        }
+
+                        var items = [];
+                        var size = 0;
+                        for (var i = 0, len = data.canvases.length; i < len; i++) {
+                            var item = data.canvases[i];
+                            items.push({
+                                w: item.w,
+                                h: item.h,
+                                x: item.x,
+                                y: item.y,
+                                image: new ImageData(new Uint8ClampedArray(item.buffer), item.w, item.h)
+                            });
+                            size += item.buffer.byteLength;
+                        }
+
+                        var eventSplitted = false;
+                        if ((data.emptyFinish > 0 && data.emptyFinish - data.eventStart < 1.0 / self.targetFps) || data.animated) {
+                            var newFinish = data.eventStart + 1.0 / self.targetFps;
+                            data.emptyFinish = newFinish;
+                            data.eventFinish = newFinish;
+                            eventSplitted = true;
+                        }
+                        self.renderedItems.push({
+                            eventStart: data.eventStart,
+                            eventFinish: data.eventFinish,
+                            emptyFinish: data.emptyFinish,
+                            spentTime: data.spentTime,
+                            blendTime: data.blendTime,
+                            viewport: data.viewport,
+                            items: items,
+                            animated: data.animated,
+                            size: size
+                        });
+
+                        self.renderedItems.sort(function (a, b) {
+                            return a.eventStart - b.eventStart;
+                        });
+
+                        if (requestNextTimestamp >= 0) {
+                            // requesting an out of order event render
+                            tryRequestOneshot(requestNextTimestamp, true);
+                        } else if (data.eventStart < 0) {
+                            console.info('oneshot received "end of frames" event');
+                        } else if (data.emptyFinish >= 0) {
+                            // there's some more event to render, try requesting next event
+                            tryRequestOneshot(data.emptyFinish, eventSplitted);
+                        } else {
+                            console.info('there are no more events to prerender');
+                        }
+                        break;
+                    }
                     default:
                         throw 'eh?';
                 }
@@ -1436,32 +1889,29 @@ var SubtitlesOctopus = function (options) {
             return;
         }
 
+        if (videoSize != null) {
+            self.canvasParent.style.position = 'relative';
+            self.canvas.style.display = 'block';
+            self.canvas.style.position = 'absolute';
+            self.canvas.style.width = videoSize.width + 'px';
+            self.canvas.style.height = videoSize.height + 'px';
+            self.canvas.style.top = top + 'px';
+            self.canvas.style.left = left + 'px';
+            self.canvas.style.pointerEvents = 'none';
+        }
 
-        if (
-          self.canvas.width != width ||
-          self.canvas.height != height ||
-          self.canvas.style.top != top ||
-          self.canvas.style.left != left
-        ) {
+        if (targetWidth !== width || targetHeight !== height) {
             self.canvas.width = width;
             self.canvas.height = height;
-
-            if (videoSize != null) {
-                self.canvasParent.style.position = 'relative';
-                self.canvas.style.display = 'block';
-                self.canvas.style.position = 'absolute';
-                self.canvas.style.width = videoSize.width + 'px';
-                self.canvas.style.height = videoSize.height + 'px';
-                self.canvas.style.top = top + 'px';
-                self.canvas.style.left = left + 'px';
-                self.canvas.style.pointerEvents = 'none';
-            }
+            targetWidth = width;
+            targetHeight = height;
 
             self.worker.postMessage({
                 target: 'canvas',
                 width: self.canvas.width,
                 height: self.canvas.height
             });
+            self.resetRenderAheadCache(true);
         }
     };
 
@@ -1497,6 +1947,7 @@ var SubtitlesOctopus = function (options) {
             target: 'set-track-by-url',
             url: url
         });
+        self.resetRenderAheadCache(false);
     };
 
     self.setTrack = function (content) {
@@ -1504,12 +1955,14 @@ var SubtitlesOctopus = function (options) {
             target: 'set-track',
             content: content
         });
+        self.resetRenderAheadCache(false);
     };
 
     self.freeTrack = function (content) {
         self.worker.postMessage({
             target: 'free-track'
         });
+        self.resetRenderAheadCache(false);
     };
 
 
@@ -1562,6 +2015,8 @@ var SubtitlesOctopus = function (options) {
 
             self.video = null;
         }
+
+        stopOneshotRender();
 
         if (self.ro) {
             self.ro.disconnect();
@@ -1642,7 +2097,7 @@ var SubtitlesOctopus = function (options) {
             style: style
         });
     };
-    
+
     self.getStyles = function (onSuccess, onError) {
         self.fetchFromWorker({
             target: 'get-styles'
