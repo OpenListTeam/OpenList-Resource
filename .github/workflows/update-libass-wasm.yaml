@@ -15,7 +15,7 @@ jobs:
     uses: ./.github/workflows/reusable-update-npm.yaml
     secrets: inherit
     with:
-      npm_package: libass-wasm
+      npm_package: '@jellyfin/libass-wasm'
       target_dir: libass-wasm
       branch_name: auto-update/libass-wasm
       extract_script: |
