@@ -12,7 +12,7 @@
 #   Enhanced with disk space checking, config backup/restore, password management
 #
 # Requirements:
-#   - Linux with systemd and OpenRC
+#   - Linux with systemd or OpenRC
 #   - Root privileges for installation
 #   - curl, tar
 #   - All supported architectures, refer to release page for details
@@ -67,7 +67,7 @@ fi
 
 # 环境检查
 INIT_TYPE="UNKNOWN"  # 应为 systemd 或 OpenRC
-if command -v systemctl >/dev/null 2>&1; then
+ if command -v systemctl >/dev/null 2>&1 && [ $(cat /proc/1/comm) = "systemd" ]; then
     INIT_TYPE="systemd"
 elif command -v rc-service >/dev/null 2>&1; then
     INIT_TYPE="OpenRC"
@@ -177,9 +177,9 @@ remove_service_definition() {
 
 get_docker_start_command() {
     if [ "$INIT_TYPE" = "systemd" ]; then
-        echo "sudo systemctl start docker"
+        echo "systemctl start docker"
     else
-        echo "sudo rc-service docker start"
+        echo "rc-service docker start"
     fi
 }
 
@@ -897,7 +897,7 @@ EOF
 #!/sbin/openrc-run
 description="OpenList service"
 
-pidfile=/run/openlist.pid
+pidfile=/run/openlist/openlist.pid
 command=$INSTALL_PATH/openlist
 command_args="server"
 command_background=true
@@ -905,8 +905,8 @@ start_stop_daemon_args="--chdir $INSTALL_PATH --stdout $OPENLIST_LOG_FILE --stde
 
 start_pre() {
     checkpath --directory --mode 0755 /run/openlist
-    checkpath --file --mode 0644 $OPENLIST_LOG_FILE
-    checkpath --file --mode 0644 $OPENLIST_ERROR_LOG_FILE
+    checkpath --file --mode 0644 "$OPENLIST_LOG_FILE"
+    checkpath --file --mode 0644 "$OPENLIST_ERROR_LOG_FILE"
 }
 
 depend() {
