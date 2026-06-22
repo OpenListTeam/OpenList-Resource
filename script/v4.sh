@@ -3,8 +3,8 @@
 #
 # OpenList Manage Script
 #
-# Version: 1.3.4
-# Last Updated: 2026-02-17
+# Version: 1.4.0
+# Last Updated: 2026-06-17
 #
 # Description:
 #   A management script for OpenList (https://github.com/OpenListTeam/OpenList)
@@ -12,7 +12,7 @@
 #   Enhanced with disk space checking, config backup/restore, password management
 #
 # Requirements:
-#   - Linux with systemd
+#   - Linux with systemd or OpenRC
 #   - Root privileges for installation
 #   - curl, tar
 #   - All supported architectures, refer to release page for details
@@ -48,16 +48,161 @@ if [ "$CURRENT_OS" != "Linux" ]; then
     exit 1
 fi
 
+# 获取平台架构
+if command -v arch >/dev/null 2>&1; then
+    platform=$(arch)
+else
+    platform=$(uname -m)
+fi
+
+ARCH="UNKNOWN"
+
+if [ -z "${ARCH_MAP["$platform"]}" ]; then
+    ARCH="UNKNOWN"
+    echo -e "\r\n${RED_COLOR}出错了${RES}，一键安装目前暂不支持 $platform 平台。\r\n"
+    exit 1
+else
+    ARCH=${ARCH_MAP["$platform"]}
+fi
+
+# 环境检查
+INIT_TYPE="UNKNOWN"  # 应为 systemd 或 OpenRC
+ if command -v systemctl >/dev/null 2>&1 && [ $(cat /proc/1/comm) = "systemd" ]; then
+    INIT_TYPE="systemd"
+elif command -v rc-service >/dev/null 2>&1; then
+    INIT_TYPE="OpenRC"
+else
+    echo -e "\r\n${RED_COLOR}出错了${RES}，当前系统不支持 systemd 或 OpenRC。\r\n建议手动安装。\r\n"
+    exit 1
+fi
+
+get_service_file_path() {
+    if [ "$INIT_TYPE" = "systemd" ]; then
+        echo "/etc/systemd/system/openlist.service"
+    else
+        echo "/etc/init.d/openlist"
+    fi
+}
+
+get_installed_path_from_service() {
+    local service_path
+    service_path=$(get_service_file_path)
+
+    if [ "$INIT_TYPE" = "systemd" ] && [ -f "$service_path" ]; then
+        grep "WorkingDirectory=" "$service_path" | cut -d'=' -f2
+        return 0
+    fi
+
+    if [ "$INIT_TYPE" = "OpenRC" ] && [ -f "$service_path" ]; then
+        grep 'start_stop_daemon_args="--chdir ' "$service_path" | sed -E 's/.*--chdir ([^" ]+).*/\1/'
+        return 0
+    fi
+
+    return 1
+}
+
+service_is_active() {
+    local service_name="$1"
+
+    if [ "$INIT_TYPE" = "systemd" ]; then
+        systemctl is-active "$service_name" >/dev/null 2>&1
+    else
+        rc-service "$service_name" status >/dev/null 2>&1
+    fi
+}
+
+service_start() {
+    local service_name="$1"
+
+    if [ "$INIT_TYPE" = "systemd" ]; then
+        systemctl start "$service_name"
+    else
+        rc-service "$service_name" start
+    fi
+}
+
+service_stop() {
+    local service_name="$1"
+
+    if [ "$INIT_TYPE" = "systemd" ]; then
+        systemctl stop "$service_name"
+    else
+        rc-service "$service_name" stop
+    fi
+}
+
+service_restart() {
+    local service_name="$1"
+
+    if [ "$INIT_TYPE" = "systemd" ]; then
+        systemctl restart "$service_name"
+    else
+        rc-service "$service_name" restart
+    fi
+}
+
+service_enable() {
+    local service_name="$1"
+
+    if [ "$INIT_TYPE" = "systemd" ]; then
+        systemctl enable "$service_name" >/dev/null 2>&1
+    else
+        rc-update add "$service_name" default >/dev/null 2>&1
+    fi
+}
+
+service_disable() {
+    local service_name="$1"
+
+    if [ "$INIT_TYPE" = "systemd" ]; then
+        systemctl disable "$service_name" >/dev/null 2>&1
+    else
+        rc-update del "$service_name" default >/dev/null 2>&1
+    fi
+}
+
+service_reload_manager() {
+    if [ "$INIT_TYPE" = "systemd" ]; then
+        systemctl daemon-reload
+    fi
+}
+
+remove_service_definition() {
+    local service_path
+    service_path=$(get_service_file_path)
+
+    rm -f "$service_path"
+    service_reload_manager
+}
+
+get_docker_start_command() {
+    if [ "$INIT_TYPE" = "systemd" ]; then
+        echo "systemctl start docker"
+    else
+        echo "rc-service docker start"
+    fi
+}
+
 # 使用 sudo -v 确保当前script使用root执行
 if [ "$(id -u)" != "0" ]; then
     echo -e "${RED_COLOR}此脚本需要root权限运行${RES}"
-    echo -e "${YELLOW_COLOR}正在请求root权限...${RES}"
-    sudo -v || {
-        echo -e "${RED_COLOR}获取root权限失败，退出脚本${RES}"
+    echo -e "${YELLOW_COLOR}正在请求root权限...${RES}"    
+    if command -v sudo >/dev/null 2>&1; then
+        sudo -v || {
+            echo -e "${RED_COLOR}获取root权限失败(sudo)，退出脚本${RES}"
+            exit 1
+        }
+        exec sudo "bash" "$0" "$@"
+    elif command -v doas >/dev/null 2>&1; then
+        doas true || {
+            echo -e "${RED_COLOR}获取root权限失败(doas)，退出脚本${RES}"
+            exit 1
+        }
+        exec doas "bash" "$0" "$@"
+    else
+        echo -e "${RED_COLOR}错误：系统中未找到 doas 或 sudo，无法提权${RES}"
         exit 1
-    }
-    # 使用sudo重新执行脚本
-    exec sudo "bash" "$0" "$@"
+    fi
 fi
 
 # 获取安装路径
@@ -121,6 +266,10 @@ VERSION_TAG="beta"
 VERSION_FILE="/opt/openlist/.version"
 GH_DOWNLOAD_URL="${GH_PROXY}https://github.com/OpenListTeam/OpenList/releases/latest/download"
 
+# OpenRC logfile 配置
+OPENLIST_LOG_FILE="/var/log/openlist.log"
+OPENLIST_ERROR_LOG_FILE="/var/log/openlist.error.log"
+
 # Docker 配置
 DOCKER_IMAGE_TAG="beta"
 DOCKER_CONTAINER_NAME="openlist"
@@ -133,12 +282,10 @@ CRON_UPDATE_TIME="0 2 * * 0"  # 每周日凌晨2点
 # 已安装的 OpenList
 GET_INSTALLED_PATH() {
     # 从 service 文件中获取工作目录
-    if [ -f "/etc/systemd/system/openlist.service" ]; then
-        installed_path=$(grep "WorkingDirectory=" /etc/systemd/system/openlist.service | cut -d'=' -f2)
-        if [ -f "$installed_path/openlist" ]; then
-            echo "$installed_path"
-            return 0
-        fi
+    installed_path=$(get_installed_path_from_service)
+    if [ -n "$installed_path" ] && [ -f "$installed_path/openlist" ]; then
+        echo "$installed_path"
+        return 0
     fi
 
     # 如果服务文件中的路径无效，尝试常见位置
@@ -184,30 +331,6 @@ if [ "$1" = "update" ] || [ "$1" = "uninstall" ]; then
 fi
 
 clear
-
-# 获取平台架构
-if command -v arch >/dev/null 2>&1; then
-  platform=$(arch)
-else
-  platform=$(uname -m)
-fi
-
-ARCH="UNKNOWN"
-
-if [ -z "${ARCH_MAP["$platform"]}" ]; then 
-  ARCH="UNKNOWN"
-else
-  ARCH=${ARCH_MAP["$platform"]}
-fi
-
-# 环境检查
-if [ "$ARCH" == "UNKNOWN" ]; then
-  echo -e "\r\n${RED_COLOR}出错了${RES}，一键安装目前暂不支持 $platform 平台。\r\n"
-  exit 1
-elif ! command -v systemctl >/dev/null 2>&1; then
-  echo -e "\r\n${RED_COLOR}出错了${RES}，你当前的 Linux 发行版不支持 systemd。\r\n建议手动安装。\r\n"
-  exit 1
-fi
 
 CHECK() {
   # 检查目标目录是否存在，如果不存在则创建
@@ -326,13 +449,13 @@ restore_config() {
     case "$confirm" in
         [yY])
             # 停止服务
-            systemctl stop openlist 2>/dev/null
+            service_stop openlist 2>/dev/null
 
             if cp -r "$backup_path/data" "$INSTALL_PATH/"; then
                 echo -e "${GREEN_COLOR}恢复成功${RES}"
 
                 # 启动服务
-                systemctl start openlist
+                service_start openlist
             else
                 echo -e "${RED_COLOR}恢复失败${RES}"
             fi
@@ -389,7 +512,7 @@ check_docker() {
 
     if ! docker info >/dev/null 2>&1; then
         echo -e "${RED_COLOR}错误：Docker 服务未运行${RES}"
-        echo -e "${YELLOW_COLOR}启动命令：sudo systemctl start docker${RES}"
+        echo -e "${YELLOW_COLOR}启动命令：$(get_docker_start_command)${RES}"
         return 1
     fi
 
@@ -593,7 +716,7 @@ check_system_status() {
 
     # 检查服务状态
     if [ -f "$INSTALL_PATH/openlist" ]; then
-        if systemctl is-active openlist >/dev/null 2>&1; then
+        if service_is_active openlist; then
             echo -e "${GREEN_COLOR}● OpenList 服务：运行中${RES}"
         else
             echo -e "${RED_COLOR}● OpenList 服务：已停止${RES}"
@@ -749,8 +872,9 @@ INIT() {
     exit 1
   fi
 
-  # 创建 systemd 服务文件
-  cat >/etc/systemd/system/openlist.service <<EOF
+  if [ "$INIT_TYPE" = "systemd" ]; then
+    # 创建 systemd 服务文件
+    cat >/etc/systemd/system/openlist.service <<EOF
 [Unit]
 Description=OpenList service
 Wants=network.target
@@ -766,8 +890,36 @@ KillMode=process
 WantedBy=multi-user.target
 EOF
 
-  systemctl daemon-reload
-  systemctl enable openlist >/dev/null 2>&1
+    service_reload_manager
+    service_enable openlist
+  elif [ "$INIT_TYPE" = "OpenRC" ]; then
+    cat >/etc/init.d/openlist <<EOF
+#!/sbin/openrc-run
+description="OpenList service"
+
+pidfile=/run/openlist/openlist.pid
+command=$INSTALL_PATH/openlist
+command_args="server"
+command_background=true
+start_stop_daemon_args="--chdir $INSTALL_PATH --stdout $OPENLIST_LOG_FILE --stderr $OPENLIST_ERROR_LOG_FILE"
+
+start_pre() {
+    checkpath --directory --mode 0755 /run/openlist
+    checkpath --file --mode 0644 "$OPENLIST_LOG_FILE"
+    checkpath --file --mode 0644 "$OPENLIST_ERROR_LOG_FILE"
+}
+
+depend() {
+    need net
+    use dns logger netmount
+}
+EOF
+    chmod +x /etc/init.d/openlist
+    service_enable openlist
+  else
+    echo -e "\r\n${RED_COLOR}出错了${RES}，当前系统不支持 systemd 或 OpenRC。\r\n建议手动安装。\r\n"
+    exit 1
+  fi
 }
 
 SUCCESS() {
@@ -815,7 +967,7 @@ SUCCESS() {
   fi
   
   echo -e "\n${GREEN_COLOR}启动服务中...${RES}"
-  systemctl restart openlist
+  service_restart openlist
   echo -e "管理: 在任意目录输入 ${GREEN_COLOR}openlist${RES} 打开管理菜单"
   
   echo -e "\n${YELLOW_COLOR}温馨提示：如果端口无法访问，请检查服务器安全组、防火墙和服务状态${RES}"
@@ -883,7 +1035,7 @@ UPDATE() {
 
     # 停止 OpenList 服务
     echo -e "${GREEN_COLOR}停止 OpenList 进程${RES}\r\n"
-    systemctl stop openlist
+    service_stop openlist
 
     # 备份二进制文件
     cp "$INSTALL_PATH/openlist" /tmp/openlist.bak
@@ -894,8 +1046,8 @@ UPDATE() {
         echo -e "${RED_COLOR}下载失败，更新终止${RES}"
         echo -e "${GREEN_COLOR}正在恢复之前的版本...${RES}"
         mv /tmp/openlist.bak "$INSTALL_PATH/openlist"
-        systemctl start openlist
-        if systemctl is-active openlist >/dev/null 2>&1; then
+        service_start openlist
+        if service_is_active openlist; then
             echo -e "${GREEN_COLOR}服务恢复成功${RES}"
         else
             echo -e "${RED_COLOR}服务恢复失败${RES}"
@@ -908,8 +1060,8 @@ UPDATE() {
         echo -e "${RED_COLOR}解压失败，更新终止${RES}"
         echo -e "${GREEN_COLOR}正在恢复之前的版本...${RES}"
         mv /tmp/openlist.bak "$INSTALL_PATH/openlist"
-        systemctl start openlist
-        if systemctl is-active openlist >/dev/null 2>&1; then
+        service_start openlist
+        if service_is_active openlist; then
             echo -e "${GREEN_COLOR}服务恢复成功${RES}"
         else
             echo -e "${RED_COLOR}服务恢复失败${RES}"
@@ -927,8 +1079,8 @@ UPDATE() {
         echo -e "${RED_COLOR}更新失败！${RES}"
         echo -e "${GREEN_COLOR}正在恢复之前的版本...${RES}"
         mv /tmp/openlist.bak "$INSTALL_PATH/openlist"
-        systemctl start openlist
-        if systemctl is-active openlist >/dev/null 2>&1; then
+        service_start openlist
+        if service_is_active openlist; then
             echo -e "${GREEN_COLOR}服务恢复成功${RES}"
         else
             echo -e "${RED_COLOR}服务恢复失败${RES}"
@@ -948,7 +1100,7 @@ UPDATE() {
 
     # 重启 OpenList 服务
     echo -e "${GREEN_COLOR}启动 OpenList 进程${RES}\r\n"
-    systemctl restart openlist
+    service_restart openlist
 
     # 显示更新完成信息和版本号
     echo -e "${GREEN_COLOR}更新完成！${RES}"
@@ -971,13 +1123,11 @@ UNINSTALL() {
     local found_path=""
 
     # 1. 首先尝试从服务文件获取路径
-    if [ -f "/etc/systemd/system/openlist.service" ]; then
-        found_path=$(grep "WorkingDirectory=" /etc/systemd/system/openlist.service | cut -d'=' -f2)
-        if [ -f "$found_path/openlist" ]; then
-            INSTALL_PATH="$found_path"
-        else
-            found_path=""
-        fi
+    found_path=$(get_installed_path_from_service)
+    if [ -n "$found_path" ] && [ -f "$found_path/openlist" ]; then
+        INSTALL_PATH="$found_path"
+    else
+        found_path=""
     fi
 
     # 2. 如果服务文件中的路径无效，尝试常见位置
@@ -1005,7 +1155,7 @@ UNINSTALL() {
     fi
 
     echo -e "${GREEN_COLOR}找到 OpenList 安装路径：$INSTALL_PATH${RES}"
-    
+
     echo -e "${RED_COLOR}警告：卸载后将删除本地 OpenList 目录、数据库文件及命令行工具！${RES}"
     read -p "是否确认卸载？[y/N]: " choice
 
@@ -1014,8 +1164,8 @@ UNINSTALL() {
             echo -e "${GREEN_COLOR}开始卸载...${RES}"
 
             echo -e "${GREEN_COLOR}停止 OpenList 进程${RES}"
-            systemctl stop openlist
-            systemctl disable openlist
+            service_stop openlist
+            service_disable openlist
 
             echo -e "${GREEN_COLOR}禁用自动更新${RES}"
             # 从 crontab 中删除自动更新任务（如果存在）
@@ -1029,9 +1179,8 @@ UNINSTALL() {
             echo -e "${GREEN_COLOR}删除 OpenList 文件${RES}"
             rm -rf "$INSTALL_PATH"
 
-            rm -f /etc/systemd/system/openlist.service
-            systemctl daemon-reload
-            
+            remove_service_definition
+
             # 删除管理脚本和命令链接
             if [ -f "$MANAGER_PATH" ] || [ -L "$COMMAND_LINK" ]; then
                 echo -e "${GREEN_COLOR}删除命令行工具${RES}"
@@ -1041,7 +1190,7 @@ UNINSTALL() {
                     echo -e "${YELLOW_COLOR}2. $COMMAND_LINK${RES}"
                 }
             fi
-            
+
             echo -e "${GREEN_COLOR}OpenList 已完全卸载${RES}"
             exit 0
             ;;
@@ -1057,8 +1206,10 @@ UNINSTALL() {
 # 从日志中提取初始密码
 extract_password_from_logs() {
     local password=""
-    if command -v systemctl >/dev/null 2>&1; then
+    if [ "$INIT_TYPE" = "systemd" ]; then
         password=$(journalctl -u openlist --no-pager -n 100 2>/dev/null | grep -i "initial password is:" | tail -1 | sed 's/.*initial password is: //' | tr -d ' ')
+    elif [ -f "$OPENLIST_LOG_FILE" ]; then
+        password=$(grep -i "initial password is:" "$OPENLIST_LOG_FILE" | tail -1 | sed 's/.*initial password is: //' | tr -d ' ')
     fi
     echo "$password"
 }
@@ -1144,9 +1295,14 @@ RESET_PASSWORD() {
             fi
 
             # 尝试从日志中获取密码信息
-            if systemctl is-active openlist >/dev/null 2>&1; then
+            if service_is_active openlist; then
                 echo -e "\n${GREEN_COLOR}从日志中查找密码信息...${RES}"
-                local password_info=$(journalctl -u openlist --no-pager -n 100 2>/dev/null | grep -i "password" | tail -3)
+                local password_info=""
+                if [ "$INIT_TYPE" = "systemd" ]; then
+                    password_info=$(journalctl -u openlist --no-pager -n 100 2>/dev/null | grep -i "password" | tail -3)
+                elif [ -f "$OPENLIST_LOG_FILE" ]; then
+                    password_info=$(grep -i "password" "$OPENLIST_LOG_FILE" | tail -3)
+                fi
                 if [ -n "$password_info" ]; then
                     echo "$password_info"
                 else
@@ -1173,7 +1329,7 @@ RESET_PASSWORD() {
 
             if [ "$confirm" = "RESET" ]; then
                 echo -e "${GREEN_COLOR}停止服务...${RES}"
-                systemctl stop openlist
+                service_stop openlist
 
                 echo -e "${GREEN_COLOR}备份数据...${RES}"
                 if [ -d "$INSTALL_PATH/data" ]; then
@@ -1184,7 +1340,7 @@ RESET_PASSWORD() {
                 mkdir -p "$INSTALL_PATH/data"
 
                 echo -e "${GREEN_COLOR}启动服务...${RES}"
-                systemctl start openlist
+                service_start openlist
 
                 echo -e "${GREEN_COLOR}等待服务启动...${RES}"
                 sleep 2
@@ -1238,7 +1394,7 @@ SHOW_ABOUT() {
     echo -e "${GREEN_COLOR}│                                                    │${RES}"
     echo -e "${GREEN_COLOR}│  ${CYAN_COLOR}支持平台：${RES}                                      │"
     echo -e "${GREEN_COLOR}│    架构: 详见下载页面                              │${RES}"
-    echo -e "${GREEN_COLOR}│    系统: Linux with systemd                        │${RES}"
+    echo -e "${GREEN_COLOR}│    系统: Linux with systemd / OpenRC               │${RES}"
     echo -e "${GREEN_COLOR}│                                                    │${RES}"
     echo -e "${GREEN_COLOR}│                                                    │${RES}"
     echo -e "${GREEN_COLOR}│                                                    │${RES}"
@@ -1371,7 +1527,7 @@ SHOW_MENU() {
         return 1
       fi
       # 检查服务状态
-      if systemctl is-active openlist >/dev/null 2>&1; then
+      if service_is_active openlist; then
         echo -e "${GREEN_COLOR}OpenList 当前状态为：运行中${RES}"
       else
         echo -e "${RED_COLOR}OpenList 当前状态为：停止${RES}"
@@ -1387,7 +1543,7 @@ SHOW_MENU() {
         echo -e "\r\n${RED_COLOR}错误：系统未安装 OpenList，请先安装！${RES}\r\n"
         return 1
       fi
-      systemctl start openlist
+      service_start openlist
       echo -e "${GREEN_COLOR}OpenList 已启动${RES}"
       return 0
       ;;
@@ -1396,7 +1552,7 @@ SHOW_MENU() {
         echo -e "\r\n${RED_COLOR}错误：系统未安装 OpenList，请先安装！${RES}\r\n"
         return 1
       fi
-      systemctl stop openlist
+      service_stop openlist
       echo -e "${GREEN_COLOR}OpenList 已停止${RES}"
       return 0
       ;;
@@ -1405,7 +1561,7 @@ SHOW_MENU() {
         echo -e "\r\n${RED_COLOR}错误：系统未安装 OpenList，请先安装！${RES}\r\n"
         return 1
       fi
-      systemctl restart openlist
+      service_restart openlist
       echo -e "${GREEN_COLOR}OpenList 已重启${RES}"
       return 0
       ;;
