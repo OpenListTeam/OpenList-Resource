@@ -26,6 +26,24 @@ You are free to copy, use, share, and adapt this icon for non-commercial purpose
 
   **Do not** use the icon for any **commercial purposes**
 
+## 官方技术变体 Official Technical Variants
+
+以下目录包含由 [OpenListTeam/Logo](https://github.com/OpenListTeam/Logo) 生成并维护的官方技术变体：
+
+The following directories contain official technical variants generated and maintained by [OpenListTeam/Logo](https://github.com/OpenListTeam/Logo):
+
+- `maskable`：使用不透明 `#263238` 背景，适用于支持遮罩的应用图标。
+
+  Uses an opaque `#263238` background for application icons that support masks.
+
+- `monochrome`：使用保留原始透明度的黑色轮廓，供平台动态着色。
+
+  Uses a black silhouette with the original transparency for platform-provided dynamic coloring.
+
+这些变体属于为平台兼容性进行的修改，并继续采用本目录的 CC BY-NC-SA 4.0 许可及署名。
+
+These variants are modified for platform compatibility and remain subject to this directory's CC BY-NC-SA 4.0 license and attribution.
+
 ## 附加说明与使用建议 Additional Notes and Usage Recommendations
 
 为避免误解或混淆，我们诚挚建议您**避免**将图标原图或仅进行**轻微**修改的版本（如改色、简单裁剪、加字、旋转等）用于以下场景：
@@ -57,3 +75,4 @@ For commercial use, brand integration, or other cases outside the above scope, p
 - Designed by [@ubnm](https://github.com/ubnm)
 - HD remaster by [@meethuthu](https://github.com/meethuhu)
 - Converted by [@cxw620](https://github.com/cxw620)
+- Maskable/Monochrome variants by [@jyxjjj](https://github.com/jyxjjj)
