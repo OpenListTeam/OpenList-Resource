@@ -35,11 +35,21 @@ RES='\e[0m'
 # CPU架构定义
 declare -A ARCH_MAP=(
     ["x86_64"]="amd64"
+    ["i686"]="386"  # FIXME: musl version doesn't have i386.
     ["aarch64"]="arm64"
+    ["arm64"]="arm64"
+    ["armv7l"]="armv7l"
+    ["armv6l"]="armv6"
+    ["armv5tel"]="armv5l"
+    ["armv5tejl"]="armv5l"
+    ["armv5l"]="armv5l"
+    ["armv5tl"]="armv5l"
+    ["arm"]="arm"  # Generic 32-bit arm device
     ["loongarch64"]="loong64"
     ["loongson3"]="mips64le"
     ["s390x"]="s390x"
-    ["armv7l"]="armv7l"
+    ["ppc64le"]="ppc64le"
+    ["riscv64"]="riscv64"  # FIXME: musl version doesn't have riscv64
 )
 
 # 检查系统是否为Linux
