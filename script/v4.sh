@@ -36,9 +36,18 @@ RES='\e[0m'
 declare -A ARCH_MAP=(
     ["x86_64"]="amd64"
     ["aarch64"]="arm64"
+    ["arm64"]="arm64"
+    ["armv7l"]="armv7l"
+    ["armv6l"]="armv6"
+    ["armv5tel"]="armv5l"
+    ["armv5tejl"]="armv5l"
+    ["armv5l"]="armv5l"
+    ["armv5tl"]="armv5l"
+    ["arm"]="arm"  # Generic 32-bit arm device
     ["loongarch64"]="loong64"
     ["loongson3"]="mips64le"
     ["s390x"]="s390x"
+    ["ppc64le"]="ppc64le"
 )
 
 # 检查系统是否为Linux
@@ -63,6 +72,28 @@ if [ -z "${ARCH_MAP["$platform"]}" ]; then
     exit 1
 else
     ARCH=${ARCH_MAP["$platform"]}
+fi
+
+# For 32bit arm only
+IS_HF=false
+if command -v ldd &> /dev/null; then
+    LDD_OUT=$(ldd /bin/bash 2>/dev/null)
+    if echo "$LDD_OUT" | grep -q "armhf"; then
+        IS_HF=true
+    fi
+fi
+
+LIBC_PREFIX="musl"
+if [[ $ARCH =~ ^"arm" ]] && [[ $ARCH != "arm64" ]]; then
+    if $IS_HF; then
+        LIBC_PREFIX="musleabihf"
+    else
+        LIBC_PREFIX="musleabi"
+        if [[ $ARCH == "armv7l" ]]; then
+            # 如果遇到了不支持hf的特殊armv7，就让它用v6的
+            $ARCH="armv6"
+        fi
+    fi
 fi
 
 # 环境检查
@@ -824,7 +855,7 @@ INSTALL() {
   echo -e "\r\n${GREEN_COLOR}下载 OpenList ...${RES}"
   
   # 使用拼接后的 GitHub 下载地址
-  if ! download_file "${GH_DOWNLOAD_URL}/openlist-linux-musl-$ARCH.tar.gz" "/tmp/openlist.tar.gz"; then
+  if ! download_file "${GH_DOWNLOAD_URL}/openlist-linux-$LIBC_PREFIX-$ARCH.tar.gz" "/tmp/openlist.tar.gz"; then
     echo -e "${RED_COLOR}下载失败！${RES}"
     exit 1
   fi
@@ -1042,7 +1073,7 @@ UPDATE() {
 
     # 下载新版本
     echo -e "${GREEN_COLOR}下载 OpenList ...${RES}"
-    if ! download_file "${GH_DOWNLOAD_URL}/openlist-linux-musl-$ARCH.tar.gz" "/tmp/openlist.tar.gz"; then
+    if ! download_file "${GH_DOWNLOAD_URL}/openlist-linux-$LIBC_PREFIX-$ARCH.tar.gz" "/tmp/openlist.tar.gz"; then
         echo -e "${RED_COLOR}下载失败，更新终止${RES}"
         echo -e "${GREEN_COLOR}正在恢复之前的版本...${RES}"
         mv /tmp/openlist.bak "$INSTALL_PATH/openlist"
