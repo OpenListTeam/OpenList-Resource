@@ -35,7 +35,6 @@ RES='\e[0m'
 # CPU架构定义
 declare -A ARCH_MAP=(
     ["x86_64"]="amd64"
-    ["i686"]="386"  # FIXME: musl version doesn't have i386.
     ["aarch64"]="arm64"
     ["arm64"]="arm64"
     ["armv7l"]="armv7l"
@@ -49,7 +48,6 @@ declare -A ARCH_MAP=(
     ["loongson3"]="mips64le"
     ["s390x"]="s390x"
     ["ppc64le"]="ppc64le"
-    ["riscv64"]="riscv64"  # FIXME: musl version doesn't have riscv64
 )
 
 # 检查系统是否为Linux
@@ -91,6 +89,10 @@ if [[ $ARCH =~ ^"arm" ]] && [[ $ARCH != "arm64" ]]; then
         LIBC_PREFIX="musleabihf"
     else
         LIBC_PREFIX="musleabi"
+        if [[ $ARCH == "armv7l" ]]; then
+            # 如果遇到了不支持hf的特殊armv7，就让它用v6的
+            $ARCH="armv6"
+        fi
     fi
 fi
 
