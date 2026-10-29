@@ -37,6 +37,7 @@ declare -A ARCH_MAP=(
     ["x86_64"]="amd64"
     ["aarch64"]="arm64"
     ["arm64"]="arm64"
+    ["armv8l"]="armv7l"
     ["armv7l"]="armv7l"
     ["armv6l"]="armv6"
     ["armv5tel"]="armv5l"
